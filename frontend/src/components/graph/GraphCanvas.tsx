@@ -1,0 +1,180 @@
+/**
+ * GraphCanvas Component
+ * Interactive D3.js force-directed graph visualization
+ * Uses D3.js v7.9.0 for physics simulation
+ */
+import { useRef, useEffect, useState } from 'react';
+import * as d3 from 'd3';
+import type { GraphData, GraphNode, GraphLink } from '../../types/graph';
+import styles from './GraphCanvas.module.scss';
+
+interface GraphCanvasProps {
+  data: GraphData;
+  width?: number;
+  height?: number;
+  onNodeClick?: (node: GraphNode) => void;
+  onNodeHover?: (node: GraphNode | null) => void;
+}
+
+export default function GraphCanvas({
+  data,
+  width = 1200,
+  height = 800,
+  onNodeClick,
+  onNodeHover,
+}: GraphCanvasProps) {
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [hoveredNode, setHoveredNode] = useState<GraphNode | null>(null);
+
+  useEffect(() => {
+    if (!svgRef.current || !data.nodes.length) return;
+
+    // Clear previous visualization
+    d3.select(svgRef.current).selectAll('*').remove();
+
+    const svg = d3.select(svgRef.current);
+
+    // Create container group for zoom/pan
+    const g = svg.append('g').attr('class', styles.graphContainer);
+
+    // Setup zoom behavior
+    const zoom = d3.zoom<SVGSVGElement, unknown>()
+      .scaleExtent([0.1, 4])
+      .on('zoom', (event) => {
+        g.attr('transform', event.transform);
+      });
+
+    svg.call(zoom);
+
+    // Create force simulation
+    const simulation = d3
+      .forceSimulation<GraphNode>(data.nodes)
+      .force(
+        'link',
+        d3
+          .forceLink<GraphNode, GraphLink>(data.links)
+          .id((d) => d.id)
+          .distance((link) => {
+            // Stronger relationships = shorter distance
+            return 100 - link.strength * 50;
+          })
+          .strength((link) => link.strength)
+      )
+      .force('charge', d3.forceManyBody().strength(-300))
+      .force('center', d3.forceCenter(width / 2, height / 2))
+      .force('collision', d3.forceCollide().radius((d) => (d as GraphNode).size + 10));
+
+    // Create links
+    const link = g
+      .append('g')
+      .attr('class', styles.links)
+      .selectAll('line')
+      .data(data.links)
+      .join('line')
+      .attr('class', styles.link)
+      .attr('stroke-width', (d) => Math.sqrt(d.strength * 5))
+      .attr('stroke-opacity', (d) => 0.3 + d.strength * 0.3);
+
+    // Create nodes
+    const node = g
+      .append('g')
+      .attr('class', styles.nodes)
+      .selectAll<SVGGElement, GraphNode>('g')
+      .data(data.nodes)
+      .join('g')
+      .attr('class', styles.node)
+      .call(
+        d3
+          .drag<SVGGElement, GraphNode>()
+          .on('start', dragstarted)
+          .on('drag', dragged)
+          .on('end', dragended)
+      );
+
+    // Add circles to nodes
+    node
+      .append('circle')
+      .attr('r', (d) => d.size)
+      .attr('fill', (d) => d.color)
+      .attr('class', styles.nodeCircle);
+
+    // Add labels to nodes
+    node
+      .append('text')
+      .text((d) => d.name)
+      .attr('class', styles.nodeLabel)
+      .attr('x', 0)
+      .attr('y', (d) => d.size + 15);
+
+    // Add hover effects
+    node
+      .on('mouseenter', function (_event, d) {
+        d3.select(this).select('circle').attr('class', styles.nodeCircleHover);
+        setHoveredNode(d);
+        onNodeHover?.(d);
+      })
+      .on('mouseleave', function () {
+        d3.select(this).select('circle').attr('class', styles.nodeCircle);
+        setHoveredNode(null);
+        onNodeHover?.(null);
+      })
+      .on('click', (event, d) => {
+        event.stopPropagation();
+        onNodeClick?.(d);
+      });
+
+    // Update positions on each tick
+    simulation.on('tick', () => {
+      link
+        .attr('x1', (d) => (typeof d.source === 'object' ? d.source.x ?? 0 : 0))
+        .attr('y1', (d) => (typeof d.source === 'object' ? d.source.y ?? 0 : 0))
+        .attr('x2', (d) => (typeof d.target === 'object' ? d.target.x ?? 0 : 0))
+        .attr('y2', (d) => (typeof d.target === 'object' ? d.target.y ?? 0 : 0));
+
+      node.attr('transform', (d) => `translate(${d.x ?? 0},${d.y ?? 0})`);
+    });
+
+    // Drag functions
+    function dragstarted(_event: d3.D3DragEvent<SVGGElement, GraphNode, GraphNode>, subject: GraphNode) {
+      if (!_event.active) simulation.alphaTarget(0.3).restart();
+      subject.fx = subject.x;
+      subject.fy = subject.y;
+    }
+
+    function dragged(_event: d3.D3DragEvent<SVGGElement, GraphNode, GraphNode>, subject: GraphNode) {
+      subject.fx = _event.x;
+      subject.fy = _event.y;
+    }
+
+    function dragended(_event: d3.D3DragEvent<SVGGElement, GraphNode, GraphNode>, subject: GraphNode) {
+      if (!_event.active) simulation.alphaTarget(0);
+      subject.fx = null;
+      subject.fy = null;
+    }
+
+    // Cleanup
+    return () => {
+      simulation.stop();
+    };
+  }, [data, width, height, onNodeClick, onNodeHover]);
+
+  return (
+    <div className={styles.canvasWrapper}>
+      <svg
+        ref={svgRef}
+        width={width}
+        height={height}
+        className={styles.canvas}
+      />
+      {hoveredNode && (
+        <div className={styles.tooltip}>
+          <h4>{hoveredNode.name}</h4>
+          <p className={styles.tooltipType}>{hoveredNode.type}</p>
+          {hoveredNode.description && (
+            <p className={styles.tooltipDescription}>{hoveredNode.description}</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

@@ -1,0 +1,17 @@
+React Hooks and State Management
+
+React Hooks are a powerful feature that allow you to use state and lifecycle features in functional components.
+
+useState is the most basic hook that lets you add state to functional components.
+
+useEffect handles side effects like data fetching and subscriptions. It replaces componentDidMount, componentDidUpdate, and componentWillUnmount.
+
+useContext provides a way to share values between components without prop drilling.
+
+Custom Hooks let you extract component logic into reusable functions.
+
+State Management in larger apps often requires libraries like Redux or Zustand.
+
+Server-Side Rendering with React can improve performance and SEO.
+
+Next.js is a popular framework that enables SSR with React and includes many optimizations out of the box.

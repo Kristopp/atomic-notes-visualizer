@@ -1,0 +1,190 @@
+/**
+ * GraphCanvas Styles
+ * Performance-optimized SCSS for D3.js visualization
+ * Uses CSS Modules to avoid runtime overhead during force simulation
+ */
+
+.canvasWrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.canvas {
+  display: block;
+  cursor: grab;
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+// Graph container for zoom/pan transformations
+.graphContainer {
+  // D3 will handle transforms
+}
+
+// Links styling
+.links {
+  pointer-events: none;
+}
+
+.link {
+  stroke: rgba(148, 163, 184, 0.4);
+  stroke-linecap: round;
+  transition: stroke-opacity 0.2s ease;
+
+  &:hover {
+    stroke-opacity: 0.8 !important;
+  }
+}
+
+// Nodes styling
+.nodes {
+  // Container for all nodes
+}
+
+.node {
+  cursor: pointer;
+  user-select: none;
+  // Don't use transform here - D3 uses it for positioning
+}
+
+.nodeCircle {
+  stroke: rgba(255, 255, 255, 0.8);
+  stroke-width: 2px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+
+  &:hover {
+    stroke-width: 3px;
+    stroke: rgba(255, 255, 255, 1);
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4));
+  }
+}
+
+.nodeCircleHover {
+  stroke: rgba(255, 255, 255, 1);
+  stroke-width: 4px;
+  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.5));
+  animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.nodeLabel {
+  fill: #e2e8f0;
+  font-size: 12px;
+  font-weight: 600;
+  text-anchor: middle;
+  pointer-events: none;
+  paint-order: stroke fill;
+  stroke: #1a1a2e;
+  stroke-width: 3px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: opacity 0.2s ease;
+  opacity: 0.9;
+
+  .node:hover & {
+    opacity: 1;
+    font-size: 13px;
+  }
+}
+
+// Tooltip styling
+.tooltip {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: rgba(30, 30, 46, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 8px;
+  padding: 16px;
+  min-width: 200px;
+  max-width: 300px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+  animation: fadeIn 0.2s ease;
+  z-index: 1000;
+
+  h4 {
+    margin: 0 0 8px 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: #f8fafc;
+  }
+}
+
+.tooltipType {
+  display: inline-block;
+  margin: 0 0 12px 0;
+  padding: 4px 12px;
+  background: rgba(99, 102, 241, 0.2);
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #a5b4fc;
+}
+
+.tooltipDescription {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #cbd5e1;
+}
+
+// Animations
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.9;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Performance optimizations
+.node, .link {
+  will-change: transform;
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .nodeLabel {
+    font-size: 10px;
+  }
+
+  .tooltip {
+    top: 10px;
+    right: 10px;
+    min-width: 150px;
+    padding: 12px;
+
+    h4 {
+      font-size: 14px;
+    }
+  }
+
+  .tooltipDescription {
+    font-size: 12px;
+  }
+}
