@@ -25,6 +25,7 @@ export default function GraphCanvas({
 }: GraphCanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [hoveredNode, setHoveredNode] = useState<GraphNode | null>(null);
+  const [focusedNode, setFocusedNode] = useState<GraphNode | null>(null);
 
   useEffect(() => {
     if (!svgRef.current || !data.nodes.length) return;
@@ -120,6 +121,7 @@ export default function GraphCanvas({
       })
       .on('click', (event, d) => {
         event.stopPropagation();
+        setFocusedNode(d);
         onNodeClick?.(d);
       });
 
@@ -132,6 +134,29 @@ export default function GraphCanvas({
         .attr('y2', (d) => (typeof d.target === 'object' ? d.target.y ?? 0 : 0));
 
       node.attr('transform', (d) => `translate(${d.x ?? 0},${d.y ?? 0})`);
+
+      // Update Opacity based on focus
+      if (focusedNode) {
+        const neighborIds = new Set<string>();
+        data.links.forEach(l => {
+          if (typeof l.source === 'object' && l.source.id === focusedNode.id) neighborIds.add(typeof l.target === 'object' ? l.target.id : '');
+          if (typeof l.target === 'object' && l.target.id === focusedNode.id) neighborIds.add(typeof l.source === 'object' ? l.source.id : '');
+        });
+        neighborIds.add(focusedNode.id);
+
+        node.style('opacity', (d) => neighborIds.has(d.id) ? 1 : 0.15);
+        link.style('opacity', (l) =>
+          (typeof l.source === 'object' && l.source.id === focusedNode.id) ||
+            (typeof l.target === 'object' && l.target.id === focusedNode.id) ? 1 : 0.05
+        );
+      } else {
+        node.style('opacity', 1);
+        link.style('opacity', (d) => 0.3 + d.strength * 0.3);
+      }
+    });
+
+    svg.on('click', () => {
+      setFocusedNode(null);
     });
 
     // Drag functions
@@ -168,8 +193,15 @@ export default function GraphCanvas({
       />
       {hoveredNode && (
         <div className={styles.tooltip}>
-          <h4>{hoveredNode.name}</h4>
-          <p className={styles.tooltipType}>{hoveredNode.type}</p>
+          <div className="flex justify-between items-start mb-2">
+            <h4>{hoveredNode.name}</h4>
+            <span className={styles.tooltipType}>{hoveredNode.type}</span>
+          </div>
+          <div className="flex gap-4 mb-3">
+            <div className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">
+              Connections: <span className="text-indigo-400">{data.links.filter(l => (typeof l.source === 'object' ? l.source.id : l.source) === hoveredNode.id || (typeof l.target === 'object' ? l.target.id : l.target) === hoveredNode.id).length}</span>
+            </div>
+          </div>
           {hoveredNode.description && (
             <p className={styles.tooltipDescription}>{hoveredNode.description}</p>
           )}

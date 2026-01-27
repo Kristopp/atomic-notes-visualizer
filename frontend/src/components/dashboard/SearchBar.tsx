@@ -51,11 +51,11 @@ export default function SearchBar({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           className="
-            block w-full pl-10 pr-12 py-3 
-            bg-white border border-gray-300 rounded-lg
-            text-gray-900 placeholder-gray-500
-            focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
-            transition-all duration-200
+            block w-full pl-10 pr-12 py-3.5
+            bg-white/5 border border-white/10 rounded-xl
+            text-white placeholder-slate-500
+            focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50
+            transition-all duration-300
           "
           placeholder={placeholder}
         />
@@ -83,8 +83,8 @@ export default function SearchBar({
       </div>
 
       {/* Search suggestions/hints */}
-      <div className="mt-2 flex flex-wrap gap-2">
-        <span className="text-xs text-gray-500">Try:</span>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <span className="text-[10px] uppercase tracking-wider font-bold text-slate-500 flex items-center pr-1">Try:</span>
         {['React hooks', 'Machine learning', 'Design patterns'].map((suggestion) => (
           <button
             key={suggestion}
@@ -94,10 +94,10 @@ export default function SearchBar({
               onSearch(suggestion);
             }}
             className="
-              text-xs px-2 py-1 rounded-full
-              bg-gray-100 text-gray-700
-              hover:bg-primary-100 hover:text-primary-700
-              transition-colors duration-200
+              text-xs px-3 py-1.5 rounded-full
+              bg-white/5 text-slate-300 border border-white/5
+              hover:bg-indigo-500/10 hover:text-indigo-300 hover:border-indigo-500/30
+              transition-all duration-300
             "
           >
             {suggestion}

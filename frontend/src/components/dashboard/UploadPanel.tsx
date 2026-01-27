@@ -48,14 +48,21 @@ export default function UploadPanel({ onFileUpload, isProcessing = false }: Uplo
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <h2 className="text-2xl font-bold text-gray-800 mb-4">Upload Notes</h2>
-      
+    <div className="glass rounded-2xl p-6 transition-all duration-300">
+      <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+        <svg className="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+        </svg>
+        Upload Notes
+      </h2>
+
       <div
         className={`
-          border-2 border-dashed rounded-lg p-8 text-center cursor-pointer
-          transition-all duration-200 ease-in-out
-          ${isDragging ? 'border-primary-500 bg-primary-50' : 'border-gray-300 hover:border-primary-400'}
+          relative border-2 border-dashed rounded-xl p-8 text-center cursor-pointer
+          transition-all duration-300 ease-in-out
+          ${isDragging
+            ? 'border-indigo-400 bg-indigo-500/10 scale-[1.02]'
+            : 'border-white/10 hover:border-white/30 hover:bg-white/5'}
           ${isProcessing ? 'opacity-50 pointer-events-none' : ''}
         `}
         onDragOver={handleDragOver}
@@ -73,43 +80,52 @@ export default function UploadPanel({ onFileUpload, isProcessing = false }: Uplo
         />
 
         <div className="space-y-4">
-          <svg
-            className="mx-auto h-12 w-12 text-gray-400"
-            stroke="currentColor"
-            fill="none"
-            viewBox="0 0 48 48"
-            aria-hidden="true"
-          >
-            <path
-              d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-              strokeWidth={2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+          <div className="relative mx-auto h-16 w-16">
+            <svg
+              className={`h-full w-full ${isDragging ? 'text-indigo-400' : 'text-slate-500'} transition-colors duration-300`}
+              stroke="currentColor"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+              />
+            </svg>
+            {isDragging && (
+              <div className="absolute inset-0 rounded-full border-2 border-indigo-400 animate-ping opacity-20" />
+            )}
+          </div>
 
           {isProcessing ? (
-            <div>
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-2"></div>
-              <p className="text-sm text-gray-600">Processing your notes...</p>
+            <div className="py-2">
+              <div className="w-12 h-1 bg-white/10 rounded-full mx-auto overflow-hidden">
+                <div className="h-full bg-indigo-500 animate-[loading_1.5s_ease-in-out_infinite]" />
+              </div>
+              <p className="mt-4 text-sm font-medium text-slate-400">Processing notes...</p>
             </div>
           ) : (
-            <>
-              <p className="text-sm text-gray-600">
-                <span className="font-semibold text-primary-600">Click to upload</span> or drag and drop
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-slate-300">
+                <span className="text-indigo-400 font-bold">Click to select</span>
+                <span className="block text-xs text-slate-500 mt-1 font-normal italic">or drag and drop here</span>
               </p>
-              <p className="text-xs text-gray-500">TXT or MD files only</p>
-            </>
+            </div>
           )}
         </div>
       </div>
 
-      <div className="mt-6 space-y-2">
-        <h3 className="text-sm font-semibold text-gray-700">Supported formats:</h3>
-        <ul className="text-xs text-gray-600 space-y-1 ml-4">
-          <li>• YouTube video transcripts (.txt)</li>
-          <li>• Markdown notes (.md)</li>
-          <li>• Plain text atomic notes (.txt)</li>
+      <div className="mt-8 pt-6 border-t border-white/5 space-y-4">
+        <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500">Supported formats</h3>
+        <ul className="grid grid-cols-1 gap-2">
+          {['YouTube transcripts (.txt)', 'Markdown files (.md)', 'Plain text (.txt)'].map((format, i) => (
+            <li key={i} className="flex items-center gap-2 text-xs text-slate-400">
+              <div className="w-1 h-1 rounded-full bg-indigo-500/50" />
+              {format}
+            </li>
+          ))}
         </ul>
       </div>
     </div>
