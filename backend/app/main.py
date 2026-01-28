@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
 # Import routers
-from app.api import notes, search
+from app.api import notes, search, annotations
 
 app = FastAPI(
     title="Atomic Notes Visualizer API",
@@ -27,6 +27,7 @@ app.add_middleware(
 # Include routers
 app.include_router(notes.router)
 app.include_router(search.router)
+app.include_router(annotations.router)
 
 
 @app.get("/")

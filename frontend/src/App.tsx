@@ -18,6 +18,7 @@ const API_BASE_URL = 'http://localhost:8002';
 
 function App() {
   const [graphData, setGraphData] = useState<GraphData>({ nodes: [], links: [] });
+  const [filteredGraphData, setFilteredGraphData] = useState<GraphData | null>(null);
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentNoteId, setCurrentNoteId] = useState<number | null>(null);
@@ -28,6 +29,11 @@ function App() {
   const [processingStatus, setProcessingStatus] = useState<ProcessingStatus | null>(null);
   const [deletingNoteId, setDeletingNoteId] = useState<number | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<{ noteId: number, title: string, entityCount: number } | null>(null);
+
+  // Annotations state
+  const [annotations, setAnnotations] = useState<any[]>([]);
+  const [newAnnotation, setNewAnnotation] = useState('');
+  const [isAddingAnnotation, setIsAddingAnnotation] = useState(false);
 
   // Load the first available note on mount
   useEffect(() => {
@@ -275,16 +281,15 @@ function App() {
 
   const handleSearch = async (query: string) => {
     if (!query.trim()) {
-      // Reload current note if search is cleared
-      if (currentNoteId) {
-        loadGraphData(currentNoteId);
-      }
+      // Clear search - reset to full graph
+      setFilteredGraphData(null);
+      setSelectedNode(null);
       return;
     }
 
     try {
       setError(null);
-      const response = await fetch(`${API_BASE_URL}/api/search?q=${encodeURIComponent(query)}`);
+      const response = await fetch(`${API_BASE_URL}/api/search?q=${encodeURIComponent(query)}&min_similarity=0.0&limit=20`);
 
       if (!response.ok) {
         throw new Error('Search failed');
@@ -293,8 +298,33 @@ function App() {
       const results = await response.json();
       console.log('Search results:', results);
 
-      // TODO: Transform search results to graph format
-      // For now, just log them
+      // Transform search results to highlight matching entities in the graph
+      if (results.results && results.results.length > 0) {
+        const matchingEntityIds = new Set(results.results.map((r: any) => r.id));
+        
+        // Filter graph data to show only matching entities and their direct connections
+        if (graphData) {
+          const filteredNodes = graphData.nodes.filter(node => matchingEntityIds.has(node.id));
+          const filteredNodeIds = new Set(filteredNodes.map(n => n.id));
+          const filteredLinks = graphData.links.filter(link => 
+            filteredNodeIds.has(link.source as number) && filteredNodeIds.has(link.target as number)
+          );
+          
+          setFilteredGraphData({
+            nodes: filteredNodes,
+            links: filteredLinks
+          });
+          
+          // Highlight first result as selected
+          if (filteredNodes.length > 0) {
+            setSelectedNode(filteredNodes[0]);
+          }
+        }
+      } else {
+        // No results - reset to full graph
+        setFilteredGraphData(null);
+        setSelectedNode(null);
+      }
 
     } catch (err) {
       console.error('Search error:', err);
@@ -304,13 +334,116 @@ function App() {
 
   const handleFilterChange = (filters: { entityTypes: string[]; minStrength: number }) => {
     console.log('Filters changed:', filters);
-    // TODO: Apply filters to graph data
-    // Filter nodes and links based on selected entity types and min strength
+    
+    // Apply filters to graph data
+    if (!graphData || graphData.nodes.length === 0) {
+      return;
+    }
+    
+    // Get all available types from current graph
+    const allAvailableTypes = Array.from(new Set(graphData.nodes.map(n => n.type)));
+    
+    // Check if filters are at defaults (no filtering)
+    const noTypeFilter = filters.entityTypes.length === allAvailableTypes.length;
+    const noStrengthFilter = filters.minStrength === 0;
+    
+    if (noTypeFilter && noStrengthFilter) {
+      // Reset to full graph
+      setFilteredGraphData(null);
+      return;
+    }
+    
+    // Filter nodes by entity type
+    const filteredNodes = graphData.nodes.filter(node => 
+      filters.entityTypes.includes(node.type)
+    );
+    
+    // Get IDs of filtered nodes
+    const filteredNodeIds = new Set(filteredNodes.map(n => n.id));
+    
+    // Filter links by:
+    // 1. Both source and target must be in filtered nodes
+    // 2. Strength must be >= minStrength
+    const filteredLinks = graphData.links.filter(link => {
+      const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+      const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+      
+      return (
+        filteredNodeIds.has(sourceId) &&
+        filteredNodeIds.has(targetId) &&
+        link.strength >= filters.minStrength
+      );
+    });
+    
+    // Update filtered graph data
+    setFilteredGraphData({
+      nodes: filteredNodes,
+      links: filteredLinks
+    });
+    
+    // Clear selected node if it's filtered out
+    if (selectedNode && !filteredNodeIds.has(selectedNode.id)) {
+      setSelectedNode(null);
+    }
   };
 
   const handleNodeClick = (node: GraphNode) => {
     setSelectedNode(node);
     console.log('Node clicked:', node);
+    // Load annotations for this entity
+    loadAnnotations(node.id);
+  };
+
+  const loadAnnotations = async (entityId: number) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/annotations/entity/${entityId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setAnnotations(data);
+      }
+    } catch (err) {
+      console.error('Failed to load annotations:', err);
+    }
+  };
+
+  const handleAddAnnotation = async () => {
+    if (!selectedNode || !newAnnotation.trim()) return;
+
+    try {
+      setIsAddingAnnotation(true);
+      const response = await fetch(`${API_BASE_URL}/api/annotations/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          entity_id: selectedNode.id,
+          user_note: newAnnotation.trim()
+        })
+      });
+
+      if (response.ok) {
+        const annotation = await response.json();
+        setAnnotations([annotation, ...annotations]);
+        setNewAnnotation('');
+      }
+    } catch (err) {
+      console.error('Failed to add annotation:', err);
+    } finally {
+      setIsAddingAnnotation(false);
+    }
+  };
+
+  const handleDeleteAnnotation = async (annotationId: number) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/annotations/${annotationId}`, {
+        method: 'DELETE'
+      });
+
+      if (response.ok) {
+        setAnnotations(annotations.filter(a => a.id !== annotationId));
+      }
+    } catch (err) {
+      console.error('Failed to delete annotation:', err);
+    }
   };
 
   return (
@@ -483,7 +616,10 @@ function App() {
               </div>
             )}
 
-            <FilterControls onFilterChange={handleFilterChange} />
+            <FilterControls 
+              onFilterChange={handleFilterChange}
+              availableTypes={Array.from(new Set(graphData.nodes.map(n => n.type)))}
+            />
           </aside>
 
           {/* Main Graph Area */}
@@ -498,7 +634,7 @@ function App() {
               {graphData.nodes.length > 0 ? (
                 <div className="rounded-xl overflow-hidden border border-white/5 bg-slate-950/20">
                   <GraphCanvas
-                    data={graphData}
+                    data={filteredGraphData || graphData}
                     width={900}
                     height={620}
                     onNodeClick={handleNodeClick}
@@ -541,8 +677,74 @@ function App() {
                   </button>
                 </div>
                 {selectedNode.description && (
-                  <p className="text-slate-300 text-lg leading-relaxed">{selectedNode.description}</p>
+                  <p className="text-slate-300 text-lg leading-relaxed mb-6">{selectedNode.description}</p>
                 )}
+
+                {/* Annotations Section */}
+                <div className="mt-8 pt-6 border-t border-white/10">
+                  <h4 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4 flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    Your Notes ({annotations.length})
+                  </h4>
+
+                  {/* Add Annotation Input */}
+                  <div className="mb-4">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={newAnnotation}
+                        onChange={(e) => setNewAnnotation(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleAddAnnotation()}
+                        placeholder="Add a personal note..."
+                        className="flex-1 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                      />
+                      <button
+                        onClick={handleAddAnnotation}
+                        disabled={!newAnnotation.trim() || isAddingAnnotation}
+                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        {isAddingAnnotation ? '...' : 'Add'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Annotations List */}
+                  {annotations.length > 0 ? (
+                    <div className="space-y-3">
+                      {annotations.map((annotation) => (
+                        <div
+                          key={annotation.id}
+                          className="p-3 bg-white/5 border border-white/10 rounded-lg group hover:bg-white/10 transition-colors"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <p className="text-sm text-slate-200 flex-1">{annotation.user_note}</p>
+                            <button
+                              onClick={() => handleDeleteAnnotation(annotation.id)}
+                              className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-400 transition-all"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                          <p className="text-[10px] text-slate-500 mt-1">
+                            {new Date(annotation.created_at).toLocaleDateString('en-US', { 
+                              month: 'short', 
+                              day: 'numeric',
+                              year: 'numeric',
+                              hour: 'numeric',
+                              minute: '2-digit'
+                            })}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-slate-500 italic">No notes yet. Add one above!</p>
+                  )}
+                </div>
               </div>
             )}
           </section>
