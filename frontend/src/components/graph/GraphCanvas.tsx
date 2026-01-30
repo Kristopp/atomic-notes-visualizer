@@ -65,16 +65,16 @@ export default function GraphCanvas({
       .force('center', d3.forceCenter(width / 2, height / 2))
       .force('collision', d3.forceCollide().radius((d) => (d as GraphNode).size + 10));
 
-    // Create links
+    // Create links (paths instead of lines for curves)
     const link = g
       .append('g')
       .attr('class', styles.links)
-      .selectAll('line')
+      .selectAll('path')
       .data(data.links)
-      .join('line')
+      .join('path')
       .attr('class', styles.link)
-      .attr('stroke-width', (d) => Math.sqrt(d.strength * 5))
-      .attr('stroke-opacity', (d) => 0.3 + d.strength * 0.3);
+      .attr('stroke-width', (d) => Math.sqrt(d.strength * 8))
+      .attr('stroke-opacity', (d) => 0.2 + d.strength * 0.4);
 
     // Create nodes
     const node = g
@@ -97,7 +97,8 @@ export default function GraphCanvas({
       .append('circle')
       .attr('r', (d) => d.size)
       .attr('fill', (d) => d.color)
-      .attr('class', styles.nodeCircle);
+      .attr('class', styles.nodeCircle)
+      .style('color', (d) => d.color); // For currentColor in CSS filters
 
     // Add labels to nodes
     node
@@ -105,7 +106,7 @@ export default function GraphCanvas({
       .text((d) => d.name)
       .attr('class', styles.nodeLabel)
       .attr('x', 0)
-      .attr('y', (d) => d.size + 15);
+      .attr('y', (d) => d.size + 18);
 
     // Add hover effects
     node
@@ -127,11 +128,24 @@ export default function GraphCanvas({
 
     // Update positions on each tick
     simulation.on('tick', () => {
-      link
-        .attr('x1', (d) => (typeof d.source === 'object' ? d.source.x ?? 0 : 0))
-        .attr('y1', (d) => (typeof d.source === 'object' ? d.source.y ?? 0 : 0))
-        .attr('x2', (d) => (typeof d.target === 'object' ? d.target.x ?? 0 : 0))
-        .attr('y2', (d) => (typeof d.target === 'object' ? d.target.y ?? 0 : 0));
+      link.attr('d', (d) => {
+        const sourceX = typeof d.source === 'object' ? d.source.x ?? 0 : 0;
+        const sourceY = typeof d.source === 'object' ? d.source.y ?? 0 : 0;
+        const targetX = typeof d.target === 'object' ? d.target.x ?? 0 : 0;
+        const targetY = typeof d.target === 'object' ? d.target.y ?? 0 : 0;
+
+        // Quadratic Bezier curve for a nice organic look
+        const midX = (sourceX + targetX) / 2;
+        const midY = (sourceY + targetY) / 2;
+        const dx = targetX - sourceX;
+        const dy = targetY - sourceY;
+
+        // Calculate control point offset for the curve
+        const offsetX = -dy * 0.15;
+        const offsetY = dx * 0.15;
+
+        return `M ${sourceX} ${sourceY} Q ${midX + offsetX} ${midY + offsetY} ${targetX} ${targetY}`;
+      });
 
       node.attr('transform', (d) => `translate(${d.x ?? 0},${d.y ?? 0})`);
 
@@ -144,14 +158,20 @@ export default function GraphCanvas({
         });
         neighborIds.add(focusedNode.id);
 
-        node.style('opacity', (d) => neighborIds.has(d.id) ? 1 : 0.15);
+        node.style('opacity', (d) => neighborIds.has(d.id) ? 1 : 0.08)
+          .style('filter', (d) => neighborIds.has(d.id) ? 'none' : 'grayscale(1)');
+
         link.style('opacity', (l) =>
           (typeof l.source === 'object' && l.source.id === focusedNode.id) ||
-            (typeof l.target === 'object' && l.target.id === focusedNode.id) ? 1 : 0.05
+            (typeof l.target === 'object' && l.target.id === focusedNode.id) ? 1 : 0.02
+        ).style('stroke', (l) =>
+          (typeof l.source === 'object' && l.source.id === focusedNode.id) ||
+            (typeof l.target === 'object' && l.target.id === focusedNode.id) ? 'rgba(99, 102, 241, 0.8)' : 'rgba(148, 163, 184, 0.15)'
         );
       } else {
-        node.style('opacity', 1);
-        link.style('opacity', (d) => 0.3 + d.strength * 0.3);
+        node.style('opacity', 1).style('filter', 'none');
+        link.style('opacity', (d) => 0.2 + d.strength * 0.4)
+          .style('stroke', 'rgba(148, 163, 184, 0.15)');
       }
     });
 

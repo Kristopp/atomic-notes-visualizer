@@ -16,11 +16,17 @@ echo -e "${BLUE}╚════════════════════�
 echo ""
 
 # Stop backend
-echo -e "${YELLOW}[1/3]${NC} Stopping backend server..."
+echo -e "${YELLOW}[1/3]${NC} Stopping backend server and Celery worker..."
 if pkill -f "uvicorn app.main:app"; then
     echo -e "${GREEN}✓ Backend stopped${NC}"
 else
     echo -e "${YELLOW}! Backend was not running${NC}"
+fi
+
+if pkill -f "celery -A app.tasks.youtube_processor worker"; then
+    echo -e "${GREEN}✓ Celery worker stopped${NC}"
+else
+    echo -e "${YELLOW}! Celery worker was not running${NC}"
 fi
 
 # Stop frontend

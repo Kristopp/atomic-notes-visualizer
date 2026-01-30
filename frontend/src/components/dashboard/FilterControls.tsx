@@ -2,7 +2,7 @@
  * FilterControls Component
  * Filter knowledge graph by entity types and relationship strength
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface FilterOptions {
   entityTypes: string[];
@@ -31,6 +31,11 @@ export default function FilterControls({
 }: FilterControlsProps) {
   const [selectedTypes, setSelectedTypes] = useState<string[]>(availableTypes);
   const [minStrength, setMinStrength] = useState(0);
+
+  // Sync selected types when available types change
+  useEffect(() => {
+    setSelectedTypes(availableTypes);
+  }, [availableTypes]);
 
   const handleTypeToggle = (type: string) => {
     const newTypes = selectedTypes.includes(type)
@@ -93,44 +98,31 @@ export default function FilterControls({
                 />
                 <div
                   className={`
-                    w-5 h-5 rounded flex items-center justify-center
-                    border-2 transition-all duration-200
-                    ${isSelected ? 'border-transparent' : 'border-gray-300'}
+                    w-6 h-6 rounded-lg flex items-center justify-center
+                    border transition-all duration-300
+                    ${isSelected ? 'border-indigo-500/50 bg-indigo-500/20 shadow-[0_0_10px_rgba(99,102,241,0.2)]' : 'border-slate-800 bg-slate-900 group-hover:border-slate-700'}
                   `}
-                  style={{
-                    backgroundColor: isSelected ? color : 'transparent',
-                  }}
                 >
-                  {isSelected && (
-                    <svg
-                      className="w-3 h-3 text-white"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={3}
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
-                  )}
+                  <div
+                    className={`w-2 h-2 rounded-full transition-transform duration-300 ${isSelected ? 'scale-125 shadow-[0_0_8px_currentColor]' : 'scale-100 opacity-40 group-hover:opacity-60'}`}
+                    style={{ backgroundColor: color, color }}
+                  />
                 </div>
                 <span
                   className={`
-                    ml-3 text-sm capitalize
-                    ${isSelected ? 'text-gray-900 font-medium' : 'text-gray-600'}
-                    group-hover:text-gray-900
+                    ml-3 text-xs font-bold uppercase tracking-widest
+                    ${isSelected ? 'text-slate-200' : 'text-slate-500'}
+                    group-hover:text-slate-300
                     transition-colors duration-200
                   `}
                 >
                   {type}
                 </span>
-                <span
-                  className="ml-auto w-3 h-3 rounded-full"
-                  style={{ backgroundColor: color }}
-                />
+                {isSelected && (
+                  <svg className="ml-auto w-3 h-3 text-indigo-400 animate-in fade-in zoom-in duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
               </label>
             );
           })}
@@ -154,28 +146,32 @@ export default function FilterControls({
           value={minStrength * 100}
           onChange={(e) => handleStrengthChange(parseInt(e.target.value) / 100)}
           className="
-            w-full h-2 rounded-lg appearance-none cursor-pointer
-            bg-gray-200
+            w-full h-1.5 rounded-lg appearance-none cursor-pointer
+            bg-slate-800 border border-white/5
             [&::-webkit-slider-thumb]:appearance-none
             [&::-webkit-slider-thumb]:w-4
             [&::-webkit-slider-thumb]:h-4
             [&::-webkit-slider-thumb]:rounded-full
-            [&::-webkit-slider-thumb]:bg-primary-500
+            [&::-webkit-slider-thumb]:bg-indigo-500
+            [&::-webkit-slider-thumb]:border-2
+            [&::-webkit-slider-thumb]:border-white/20
             [&::-webkit-slider-thumb]:cursor-pointer
             [&::-webkit-slider-thumb]:transition-all
             [&::-webkit-slider-thumb]:duration-200
-            [&::-webkit-slider-thumb]:hover:bg-primary-600
-            [&::-webkit-slider-thumb]:hover:scale-110
+            [&::-webkit-slider-thumb]:hover:bg-indigo-400
+            [&::-webkit-slider-thumb]:hover:scale-125
+            [&::-webkit-slider-thumb]:active:scale-110
             [&::-moz-range-thumb]:w-4
             [&::-moz-range-thumb]:h-4
             [&::-moz-range-thumb]:rounded-full
-            [&::-moz-range-thumb]:bg-primary-500
-            [&::-moz-range-thumb]:border-0
+            [&::-moz-range-thumb]:bg-indigo-500
+            [&::-moz-range-thumb]:border-2
+            [&::-moz-range-thumb]:border-white/20
             [&::-moz-range-thumb]:cursor-pointer
             [&::-moz-range-thumb]:transition-all
             [&::-moz-range-thumb]:duration-200
-            [&::-moz-range-thumb]:hover:bg-primary-600
-            [&::-moz-range-thumb]:hover:scale-110
+            [&::-moz-range-thumb]:hover:bg-indigo-400
+            [&::-moz-range-thumb]:hover:scale-125
           "
         />
 

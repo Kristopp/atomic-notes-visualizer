@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
 # Import routers
-from app.api import notes, search, annotations
+from app.api import notes, search, annotations, youtube
 
 app = FastAPI(
     title="Atomic Notes Visualizer API",
@@ -18,7 +18,7 @@ app = FastAPI(
 # CORS middleware for frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=["*"], # Allow all origins for development
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -28,6 +28,7 @@ app.add_middleware(
 app.include_router(notes.router)
 app.include_router(search.router)
 app.include_router(annotations.router)
+app.include_router(youtube.router)
 
 
 @app.get("/")

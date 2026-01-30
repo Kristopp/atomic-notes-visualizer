@@ -30,16 +30,16 @@ if ! docker info > /dev/null 2>&1; then
 fi
 echo -e "${GREEN}✓ Docker is running${NC}"
 
-# Check if PostgreSQL container is running
-echo -e "${YELLOW}[2/5]${NC} Checking PostgreSQL database..."
+# Check if PostgreSQL and Redis containers are running
+echo -e "${YELLOW}[2/5]${NC} Checking PostgreSQL and Redis databases..."
 if ! docker ps | grep -q atomic-notes-db; then
-    echo -e "${YELLOW}! PostgreSQL container not running. Starting it now...${NC}"
+    echo -e "${YELLOW}! Database containers not running. Starting them now...${NC}"
     cd "$SCRIPT_DIR"
     docker compose up -d
-    echo -e "${GREEN}✓ PostgreSQL started${NC}"
+    echo -e "${GREEN}✓ Databases started${NC}"
     sleep 2
 else
-    echo -e "${GREEN}✓ PostgreSQL is already running${NC}"
+    echo -e "${GREEN}✓ Databases are already running${NC}"
 fi
 
 # Check if backend .env exists
@@ -50,7 +50,7 @@ if [ ! -f "$BACKEND_DIR/.env" ]; then
 fi
 
 # Start Backend
-echo -e "${YELLOW}[3/5]${NC} Starting backend server..."
+echo -e "${YELLOW}[3/5]${NC} Starting backend server and Celery worker..."
 cd "$BACKEND_DIR"
 
 # Check if virtual environment exists
@@ -60,14 +60,21 @@ if [ ! -d "venv" ]; then
     exit 1
 fi
 
-# Kill any existing backend process
+# Kill any existing backend/celery process
 pkill -f "uvicorn app.main:app" 2>/dev/null || true
+pkill -f "celery -A app.tasks.youtube_processor worker" 2>/dev/null || true
 
 # Start backend in background
 source venv/bin/activate
 nohup uvicorn app.main:app --reload --port 8002 > /tmp/atomic-notes-backend.log 2>&1 &
 BACKEND_PID=$!
+
+# Start Celery worker in background
+nohup celery -A app.tasks.youtube_processor worker --loglevel=info > /tmp/atomic-notes-celery.log 2>&1 &
+CELERY_PID=$!
+
 echo -e "${GREEN}✓ Backend started (PID: $BACKEND_PID)${NC}"
+echo -e "${GREEN}✓ Celery worker started (PID: $CELERY_PID)${NC}"
 echo -e "  ${BLUE}→ API running at http://localhost:8002${NC}"
 echo -e "  ${BLUE}→ Logs: /tmp/atomic-notes-backend.log${NC}"
 
@@ -125,6 +132,7 @@ echo ""
 echo -e "${BLUE}Services:${NC}"
 echo -e "  • Database:  ${GREEN}http://localhost:5432${NC} (PostgreSQL)"
 echo -e "  • Backend:   ${GREEN}http://localhost:8002${NC} (FastAPI)"
+echo -e "  • Celery:    ${GREEN}Worker Active${NC}"
 echo -e "  • Frontend:  ${GREEN}http://localhost:$FRONTEND_PORT${NC} (Vite + React)"
 echo ""
 echo -e "${BLUE}PIDs:${NC}"
