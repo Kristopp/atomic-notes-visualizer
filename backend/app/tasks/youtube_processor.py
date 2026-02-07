@@ -1,5 +1,4 @@
 import os
-import logging
 import asyncio
 import json
 from typing import Dict, Any
@@ -12,8 +11,9 @@ from app.services.whisper_transcriber import transcribe_audio_file
 from app.services.summarizer import create_atomic_summary
 from app.services.processor import process_note_pipeline
 from app.services.job_queue import celery_app
+from app.core.logging_config import get_logger, set_request_id
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 def run_async(coro):
     """Helper to run async coroutines in synchronous Celery task"""
@@ -66,6 +66,12 @@ def process_youtube_video(self, youtube_url: str, note_id: int) -> Dict[str, Any
         note = db.query(Note).filter(Note.id == note_id).first()
         if note:
             note.content = transcript_data['transcript']
+            # Store segments in metadata for later use
+            existing_metadata = note.note_metadata if isinstance(note.note_metadata, dict) else {}
+            note.note_metadata = {
+                **existing_metadata,
+                "transcript_segments": transcript_data.get('segments', [])
+            }
             db.commit()
             
         # 3. Summarize
@@ -86,6 +92,9 @@ def process_youtube_video(self, youtube_url: str, note_id: int) -> Dict[str, Any
         # 4. Process Pipeline (Entity extraction, etc.)
         self.update_state(state='PROGRESS', meta={'stage': 'extract', 'progress': 70, 'message': 'Extracting entities and relationships...'})
         
+        # Get segments from transcript data
+        transcript_segments = transcript_data.get('segments', [])
+        
         # Consume the async generator
         async def consume_pipeline():
             # Refetch note within the async scope to ensure it's still there and avoid closure issues
@@ -101,7 +110,8 @@ def process_youtube_video(self, youtube_url: str, note_id: int) -> Dict[str, Any
                 inner_note.content = summary_data.get('summary', original_content)
                 inner_db.commit()
                 
-                async for progress_json in process_note_pipeline(note_id, inner_db):
+                # Pass transcript segments to pipeline for timestamp mapping
+                async for progress_json in process_note_pipeline(note_id, inner_db, transcript_segments):
                     # Parse SSE format: "data: {...}\n\n"
                     if progress_json.startswith("data: "):
                         clean_json = progress_json.replace("data: ", "").strip()

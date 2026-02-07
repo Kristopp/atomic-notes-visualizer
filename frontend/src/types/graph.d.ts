@@ -13,6 +13,7 @@ export interface GraphNode {
   y?: number;
   fx?: number | null; // Fixed positions
   fy?: number | null;
+  timestamp?: number | null; // Timestamp in seconds for YouTube sync
 }
 
 export interface GraphLink {
@@ -35,6 +36,7 @@ export interface Entity {
   entity_type: string;
   description?: string;
   color?: string;
+  timestamp?: number | null;
 }
 
 export interface Relationship {

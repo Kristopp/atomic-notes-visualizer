@@ -17,6 +17,13 @@ import './index.css';
 
 const API_BASE_URL = 'http://localhost:8002';
 
+function formatTimestamp(seconds: number | null | undefined): string {
+  if (seconds === null || seconds === undefined) return '';
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
 function App() {
   const [graphData, setGraphData] = useState<GraphData>({ nodes: [], links: [] });
   const [filteredGraphData, setFilteredGraphData] = useState<GraphData | null>(null);
@@ -498,6 +505,34 @@ function App() {
                         {selectedNode.description || 'No description available for this concept.'}
                       </p>
                     </div>
+
+                    {selectedNode.timestamp !== null && selectedNode.timestamp !== undefined && (() => {
+                      const currentNote = allNotes.find(n => n.id === currentNoteId);
+                      const isYouTube = currentNote?.note_metadata?.source === 'youtube';
+                      const videoId = currentNote?.note_metadata?.video_id;
+                      
+                      if (!isYouTube || !videoId) return null;
+                      
+                      return (
+                        <a
+                          href={`https://www.youtube.com/watch?v=${videoId}&t=${Math.floor(selectedNode.timestamp)}s`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-3 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-2xl hover:bg-red-500/20 transition-all mb-6 group"
+                        >
+                          <svg className="w-5 h-5 text-red-500 group-hover:text-red-400 transition-colors" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.245 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/>
+                          </svg>
+                          <div className="flex-1">
+                            <p className="text-xs font-bold uppercase tracking-widest text-red-400">View on YouTube</p>
+                            <p className="text-sm text-white font-medium">at {formatTimestamp(selectedNode.timestamp)}</p>
+                          </div>
+                          <svg className="w-4 h-4 text-slate-500 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
+                        </a>
+                      );
+                    })()}
 
                     <div className="pt-8 border-t border-white/5 space-y-6">
                       <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2">

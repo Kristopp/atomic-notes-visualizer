@@ -24,6 +24,7 @@ def transcribe_audio_file(
     Transcribe audio file using OpenAI Whisper API
     
     Handles files larger than 25MB by splitting them into chunks.
+    Returns transcript text and segments with timestamps for YouTube sync.
     """
     client = get_client()
     
@@ -37,15 +38,35 @@ def transcribe_audio_file(
             transcript = client.audio.transcriptions.create(
                 model="whisper-1", 
                 file=audio_file,
-                language=language
+                language=language if language else "en",
+                response_format="verbose_json"
             )
             
         if progress_callback:
             progress_callback(100)
             
+        # Extract segments - they may be dicts or objects depending on API response
+        segments = []
+        if hasattr(transcript, 'segments') and transcript.segments:
+            for segment in transcript.segments:
+                # Handle both dict and object formats
+                if isinstance(segment, dict):
+                    segments.append({
+                        "start": segment.get("start", 0),
+                        "end": segment.get("end", 0),
+                        "text": segment.get("text", "")
+                    })
+                else:
+                    segments.append({
+                        "start": segment.start,
+                        "end": segment.end,
+                        "text": segment.text
+                    })
+        
         return {
             "transcript": transcript.text,
-            "language": language or "en"
+            "language": language or "en",
+            "segments": segments
         }
     else:
         # Handle large files (> 25MB)
@@ -59,6 +80,9 @@ def transcribe_audio_file(
         chunks = [audio[i:i + ten_minutes] for i in range(0, len(audio), ten_minutes)]
         
         full_transcript = ""
+        all_segments = []
+        time_offset = 0
+        
         for i, chunk in enumerate(chunks):
             chunk_path = f"{audio_file_path}_chunk_{i}.mp3"
             chunk.export(chunk_path, format="mp3")
@@ -70,9 +94,28 @@ def transcribe_audio_file(
                 chunk_transcript = client.audio.transcriptions.create(
                     model="whisper-1", 
                     file=chunk_file,
-                    language=language
+                    language=language if language else "en",
+                    response_format="verbose_json"
                 )
                 full_transcript += chunk_transcript.text + " "
+                
+                # Add segments with time offset for chunked processing
+                chunk_start_time = (i * ten_minutes) / 1000  # Convert ms to seconds
+                if hasattr(chunk_transcript, 'segments') and chunk_transcript.segments:
+                    for segment in chunk_transcript.segments:
+                        # Handle both dict and object formats
+                        if isinstance(segment, dict):
+                            all_segments.append({
+                                "start": segment.get("start", 0) + chunk_start_time,
+                                "end": segment.get("end", 0) + chunk_start_time,
+                                "text": segment.get("text", "")
+                            })
+                        else:
+                            all_segments.append({
+                                "start": segment.start + chunk_start_time,
+                                "end": segment.end + chunk_start_time,
+                                "text": segment.text
+                            })
             
             os.remove(chunk_path)
             
@@ -81,5 +124,6 @@ def transcribe_audio_file(
             
         return {
             "transcript": full_transcript.strip(),
-            "language": language or "en"
+            "language": language or "en",
+            "segments": all_segments
         }

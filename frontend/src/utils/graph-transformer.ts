@@ -83,6 +83,7 @@ export function transformAPIToGraphData(apiResponse: APIGraphResponse): GraphDat
       description: entity.description,
       color,
       size: calculateNodeSize(connections),
+      timestamp: entity.timestamp || null,
     };
   });
 

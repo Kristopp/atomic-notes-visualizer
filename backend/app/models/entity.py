@@ -17,6 +17,7 @@ class Entity(Base):
     description = Column(Text, nullable=True)
     color = Column(String(7), nullable=True)  # Hex color for visualization
     embedding = Column(Vector(1536), nullable=True)
+    timestamp = Column(Integer, nullable=True)  # Timestamp in seconds for YouTube videos
     
     # Relationships
     note = relationship("Note", backref="entities")

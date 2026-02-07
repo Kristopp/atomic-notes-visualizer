@@ -127,7 +127,8 @@ async def get_note_graph(
                 "name": e.name,
                 "type": e.entity_type,  # Frontend expects 'type'
                 "description": e.description,
-                "color": e.color
+                "color": e.color,
+                "timestamp": e.timestamp  # Include timestamp for YouTube sync
             }
             for e in entities
         ],
@@ -155,7 +156,8 @@ async def list_notes(db: Session = Depends(get_db)):
                 "id": n.id,
                 "title": n.title,
                 "created_at": n.created_at,
-                "entity_count": len(n.entities) if hasattr(n, 'entities') else 0
+                "entity_count": len(n.entities) if hasattr(n, 'entities') else 0,
+                "note_metadata": n.note_metadata  # Include metadata for YouTube video_id
             }
             for n in notes
         ]

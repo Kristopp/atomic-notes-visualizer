@@ -156,6 +156,73 @@ JSON Response:
         raise
 
 
+async def map_entities_to_timestamps(
+    entities: List[Dict[str, Any]], 
+    transcript_segments: List[Dict[str, Any]]
+) -> Dict[str, int]:
+    """
+    Map entities to their most relevant timestamp in the transcript using GPT-5 mini
+    Returns a dictionary mapping entity names to timestamps in seconds
+    
+    Cost: ~$0.25 per 1M tokens input, $2.00 per 1M tokens output
+    Features: Built-in reasoning to understand context and find best match
+    """
+    if not transcript_segments:
+        logger.warning("No transcript segments available for timestamp mapping")
+        return {}
+    
+    # Create a simplified view of segments with timestamps
+    segments_for_prompt = []
+    for segment in transcript_segments[:50]:  # Limit to first 50 segments to save tokens
+        segments_for_prompt.append({
+            "start": segment["start"],
+            "end": segment["end"],
+            "text": segment["text"][:100]  # Truncate to save tokens
+        })
+    
+    entity_names = [e["name"] for e in entities]
+    
+    prompt = f"""Given these entities and transcript segments with timestamps, find the best timestamp for each entity.
+
+Entities to find:
+{json.dumps(entity_names, indent=2)}
+
+Transcript segments (each has start/end time in seconds and the text):
+{json.dumps(segments_for_prompt, indent=2)}
+
+For each entity, find the segment where it's most prominently discussed or first mentioned.
+Return the start time in seconds as an integer.
+
+Return ONLY a JSON object with entity names as keys and timestamps (integers) as values, no other text.
+
+JSON Response:
+"""
+    
+    try:
+        client = get_client()
+        response = client.chat.completions.create(
+            model=CHAT_MODEL,
+            messages=[
+                {"role": "system", "content": "You are an expert at finding relevant timestamps in video transcripts. Always return valid JSON."},
+                {"role": "user", "content": prompt}
+            ],
+            response_format={"type": "json_object"}
+        )
+        
+        content = response.choices[0].message.content
+        logger.info(f"Timestamp mapping response: {content[:200]}...")
+        
+        data = json.loads(content)
+        timestamps = data
+        
+        logger.info(f"Mapped {len(timestamps)} entities to timestamps using {CHAT_MODEL}")
+        return timestamps
+        
+    except Exception as e:
+        logger.error(f"Timestamp mapping failed: {e}")
+        return {}
+
+
 async def generate_embedding(text: str) -> List[float]:
     """
     Generate vector embedding for a single text using text-embedding-3-small

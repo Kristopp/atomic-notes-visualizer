@@ -4,24 +4,25 @@ Orchestrates the full AI pipeline: extraction → embedding → relationships
 """
 import logging
 import json
-from typing import AsyncGenerator
+from typing import AsyncGenerator, List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 
 from app.models.note import Note
 from app.models.entity import Entity
 from app.models.relationship import Relationship
-from app.services.ai_parser import extract_entities, detect_relationships, generate_embedding, generate_embeddings_batch
+from app.services.ai_parser import extract_entities, detect_relationships, generate_embedding, generate_embeddings_batch, map_entities_to_timestamps
 
 logger = logging.getLogger(__name__)
 
 
-async def process_note_pipeline(note_id: int, db: Session) -> AsyncGenerator[str, None]:
+async def process_note_pipeline(note_id: int, db: Session, transcript_segments: Optional[List[Dict[str, Any]]] = None) -> AsyncGenerator[str, None]:
     """
     Full AI pipeline for processing a note with real-time progress streaming:
     1. Extract entities from note content
     2. Generate embeddings for note and entities
     3. Detect relationships between entities
-    4. Save everything to database
+    4. Map entities to timestamps (if transcript_segments provided)
+    5. Save everything to database
     
     Yields Server-Sent Events (SSE) as JSON strings for real-time progress updates
     """
@@ -69,21 +70,33 @@ async def process_note_pipeline(note_id: int, db: Session) -> AsyncGenerator[str
         # Extract entity embeddings (rest of them)
         entity_embeddings = all_embeddings[1:]
         
-        # Step 3: Save entities with pre-generated embeddings
-        logger.info("Step 3: Saving entities to database...")
-        yield send_event("saving", "Saving entities to database...", 60)
+        # Step 3.5: Map entities to timestamps (if transcript segments provided)
+        entity_timestamps = {}
+        if transcript_segments:
+            logger.info("Step 3.5: Mapping entities to timestamps...")
+            yield send_event("timestamps", "Mapping entities to transcript timestamps...", 58)
+            entity_timestamps = await map_entities_to_timestamps(entities_data, transcript_segments)
+            yield send_event("timestamps", f"Mapped {len(entity_timestamps)} entities to timestamps", 60)
+        
+        # Step 4: Save entities with pre-generated embeddings
+        logger.info("Step 4: Saving entities to database...")
+        yield send_event("saving", "Saving entities to database...", 62)
         saved_entities = []
         entity_map = {}  # Map names to IDs for relationship creation
         
         for idx, entity_data in enumerate(entities_data):
-            # Create entity with pre-generated embedding
+            # Get timestamp for this entity if available
+            entity_timestamp = entity_timestamps.get(entity_data["name"])
+            
+            # Create entity with pre-generated embedding and timestamp
             entity = Entity(
                 note_id=note_id,
                 name=entity_data["name"],
                 entity_type=entity_data.get("entity_type", "concept"),
                 description=entity_data.get("description"),
                 color=entity_data.get("color", "#9CA3AF"),
-                embedding=entity_embeddings[idx]
+                embedding=entity_embeddings[idx],
+                timestamp=entity_timestamp
             )
             
             db.add(entity)
@@ -94,8 +107,8 @@ async def process_note_pipeline(note_id: int, db: Session) -> AsyncGenerator[str
         
         yield send_event("saving", f"Saved {len(saved_entities)} entities", 70)
         
-        # Step 4: Detect relationships
-        logger.info("Step 4: Detecting relationships...")
+        # Step 5: Detect relationships
+        logger.info("Step 5: Detecting relationships...")
         yield send_event("relationships", "Analyzing relationships between entities...", 75)
         relationships_data = await detect_relationships(entities_data, note.content)
         yield send_event("relationships", f"Found {len(relationships_data)} relationships", 85)
