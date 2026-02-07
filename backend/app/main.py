@@ -1,30 +1,28 @@
 """
 Atomic Notes Visualizer - FastAPI Backend
-Following Test-Driven Agent (TDA) Pattern
+Refactored with Pydantic Settings and Service Layer
 """
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-import uvicorn
-import os
 
-# Import logging setup
+from app.core.config import settings
 from app.core.logging_config import setup_logging, get_logger, get_request_id
 from app.core.middleware import RequestIDMiddleware
 from app.database import engine
 
-# Configure logging based on environment
-USE_JSON_LOGS = os.getenv("JSON_LOGS", "false").lower() == "true"
-LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
-setup_logging(level=LOG_LEVEL, use_json=USE_JSON_LOGS)
-
+# Configure logging based on settings
+setup_logging(level=settings.log_level, use_json=settings.json_logs)
 logger = get_logger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """Application lifespan context manager"""
     # Startup logic
-    logger.info("Starting up Atomic Notes Visualizer API...")
+    logger.info(f"Starting up {settings.app_name}...")
+    
     # Verify DB connection
     try:
         from sqlalchemy import text
@@ -40,16 +38,17 @@ async def lifespan(app: FastAPI):
     logger.info("Shutting down...")
     await engine.dispose()
 
+
 # Import routers
 from app.api import notes, search, annotations, youtube
 
 app = FastAPI(
-    title="Atomic Notes Visualizer API",
+    title=settings.app_name,
     description="AI-powered knowledge graph visualization from atomic notes",
-    version="0.1.0",
-    lifespan=lifespan
+    version=settings.app_version,
+    lifespan=lifespan,
+    debug=settings.debug
 )
-
 
 # Request ID middleware (must be first to ensure all logs have request_id)
 app.add_middleware(RequestIDMiddleware)
@@ -57,10 +56,10 @@ app.add_middleware(RequestIDMiddleware)
 # CORS middleware for frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Allow all origins for development
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=settings.cors_origins,
+    allow_credentials=settings.cors_allow_credentials,
+    allow_methods=settings.cors_allow_methods,
+    allow_headers=settings.cors_allow_headers,
 )
 
 
@@ -115,9 +114,9 @@ app.include_router(youtube.router)
 async def root():
     """Health check endpoint"""
     return {
-        "message": "Atomic Notes Visualizer API",
+        "message": settings.app_name,
         "status": "healthy",
-        "version": "0.1.0"
+        "version": settings.app_version
     }
 
 
@@ -132,16 +131,20 @@ async def health_check():
     except Exception as e:
         logger.error(f"Health check DB failed: {e}")
         db_status = f"error: {str(e)}"
-        
+    
     return {
         "status": "healthy" if db_status == "connected" else "degraded",
         "database": db_status,
-        "pgvector": "enabled"
+        "pgvector": "enabled",
+        "version": settings.app_version
     }
-
 
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
-
+    uvicorn.run(
+        "app.main:app",
+        host=settings.host,
+        port=settings.port,
+        reload=settings.reload
+    )

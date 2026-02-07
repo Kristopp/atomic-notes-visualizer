@@ -1,30 +1,31 @@
 """
-Notes API Router
-Handles note upload and processing
+Notes API Router - Refactored with Service Layer and Pydantic Schemas
 """
-from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
+from typing import Annotated
+from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete
-from typing import List, Annotated
-import logging
 
-from app.database import get_db
-from app.models.note import Note
-from app.models.entity import Entity
-from app.models.relationship import Relationship
+from app.services.note_service import NoteService, get_note_service
+from app.schemas import (
+    NoteListResponse, NoteResponse, NoteUploadResponse,
+    GraphDataResponse, ErrorResponse
+)
 
 router = APIRouter(prefix="/api/notes", tags=["notes"])
-logger = logging.getLogger(__name__)
-
-# Using Annotated for cleaner dependency injection
-DatabaseDep = Annotated[AsyncSession, Depends(get_db)]
 
 
-@router.post("/upload")
+@router.post(
+    "/upload",
+    response_model=NoteUploadResponse,
+    status_code=status.HTTP_201_CREATED,
+    responses={
+        400: {"model": ErrorResponse, "description": "Invalid file type"},
+        500: {"model": ErrorResponse, "description": "Internal server error"}
+    }
+)
 async def upload_note(
-    file: UploadFile = File(...),
-    db: DatabaseDep = None
+    file: Annotated[UploadFile, File(description="Text file (.txt or .md) containing atomic notes")],
+    service: NoteService = Depends(get_note_service)
 ):
     """
     Upload a text file containing atomic notes
@@ -33,7 +34,7 @@ async def upload_note(
     # Validate file type
     if not file.filename or not file.filename.endswith(('.txt', '.md')):
         raise HTTPException(
-            status_code=400,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail="Only .txt and .md files are supported"
         )
     
@@ -41,212 +42,145 @@ async def upload_note(
     content = await file.read()
     text = content.decode('utf-8')
     
-    # Create note record
-    note = Note(
-        title=file.filename,
-        content=text,
-        source_file=file.filename
-    )
-    
-    db.add(note)
-    await db.commit()
-    await db.refresh(note)
-    
-    logger.info(f"Note uploaded: {note.id} - {file.filename}")
-    
-    return {
-        "note_id": note.id,
-        "title": note.title,
-        "content_length": len(text),
-        "status": "uploaded",
-        "message": "Note uploaded successfully. Call /process to extract entities."
+    # Use service layer to create note
+    return await service.upload_file(file.filename, text)
+
+
+@router.post(
+    "/{note_id}/process",
+    responses={
+        404: {"model": ErrorResponse, "description": "Note not found"},
+        500: {"model": ErrorResponse, "description": "Processing failed"}
     }
-
-
-@router.post("/{note_id}/process")
+)
 async def process_note(
     note_id: int,
-    db: DatabaseDep = None
+    service: NoteService = Depends(get_note_service)
 ):
     """
     Trigger AI pipeline to extract entities and relationships with real-time streaming
     Returns Server-Sent Events (SSE) for live progress updates
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    
     # Import here to avoid circular dependency
     from app.services.processor import process_note_pipeline
     
-    # Get note
-    result = await db.execute(select(Note).where(Note.id == note_id))
-    note = result.scalar_one_or_none()
-    
+    # Verify note exists
+    note = await service.get_note_by_id(note_id)
     if not note:
-        raise HTTPException(status_code=404, detail="Note not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Note not found"
+        )
     
     try:
         # Return streaming response with SSE
         return StreamingResponse(
-            process_note_pipeline(note_id, db),
+            process_note_pipeline(note_id, service.db),
             media_type="text/event-stream",
             headers={
                 "Cache-Control": "no-cache",
                 "Connection": "keep-alive",
-                "X-Accel-Buffering": "no"  # Disable nginx buffering
+                "X-Accel-Buffering": "no"
             }
         )
     except Exception as e:
         logger.error(f"Processing failed: {e}")
         raise HTTPException(
-            status_code=500,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Processing failed: {str(e)}"
         )
 
 
-@router.get("/{note_id}/graph")
+@router.get(
+    "/{note_id}/graph",
+    response_model=GraphDataResponse,
+    responses={
+        404: {"model": ErrorResponse, "description": "Note not found"}
+    }
+)
 async def get_note_graph(
     note_id: int,
-    db: DatabaseDep = None
+    service: NoteService = Depends(get_note_service)
 ):
     """
     Get graph data for visualization
     Returns nodes (entities) and edges (relationships)
     """
-    # Get note
-    result = await db.execute(select(Note).where(Note.id == note_id))
-    note = result.scalar_one_or_none()
+    graph_data = await service.get_note_graph(note_id)
     
-    if not note:
-        raise HTTPException(status_code=404, detail="Note not found")
-    
-    # Get all entities for this note
-    entities_result = await db.execute(select(Entity).where(Entity.note_id == note_id))
-    entities = entities_result.scalars().all()
-    
-    # Get all relationships between these entities
-    entity_ids = [e.id for e in entities]
-    relationships = []
-    if entity_ids:
-        rel_result = await db.execute(
-            select(Relationship).where(
-                Relationship.source_entity_id.in_(entity_ids),
-                Relationship.target_entity_id.in_(entity_ids)
-            )
+    if graph_data is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Note not found"
         )
-        relationships = rel_result.scalars().all()
     
-    # Format response for frontend (D3.js compatible)
-    return {
-        "entities": [
-            {
-                "id": e.id,
-                "name": e.name,
-                "type": e.entity_type,
-                "description": e.description,
-                "color": e.color,
-                "timestamp": e.timestamp
-            }
-            for e in entities
-        ],
-        "relationships": [
-            {
-                "id": r.id,
-                "source_entity_id": r.source_entity_id,
-                "target_entity_id": r.target_entity_id,
-                "type": r.relationship_type,
-                "strength": r.strength,
-                "explanation": r.ai_explanation
-            }
-            for r in relationships
-        ]
+    return graph_data
+
+
+@router.get(
+    "/",
+    response_model=NoteListResponse
+)
+async def list_notes(
+    service: NoteService = Depends(get_note_service)
+):
+    """
+    List all notes with entity counts
+    Optimized query with no N+1 problem
+    """
+    notes = await service.list_notes()
+    return NoteListResponse(notes=notes)
+
+
+@router.get(
+    "/{note_id}",
+    response_model=NoteResponse,
+    responses={
+        404: {"model": ErrorResponse, "description": "Note not found"}
     }
-
-
-@router.get("/")
-async def list_notes(db: DatabaseDep = None):
-    """List all notes"""
-    result = await db.execute(select(Note))
-    notes_list = result.scalars().all()
-    
-    # Pre-fetch entity counts to avoid N+1 (Pro optimization)
-    # For now, we'll keep it simple but async-safe
-    
-    notes_data = []
-    for n in notes_list:
-        # We need to manually count if relationship isn't loaded
-        ent_count_res = await db.execute(select(Entity).where(Entity.note_id == n.id))
-        ent_count = len(ent_count_res.scalars().all())
-        
-        notes_data.append({
-            "id": n.id,
-            "title": n.title,
-            "created_at": n.created_at,
-            "entity_count": ent_count,
-            "note_metadata": n.note_metadata
-        })
-        
-    return {"notes": notes_data}
-
-
-@router.get("/{note_id}")
+)
 async def get_note(
     note_id: int,
-    db: DatabaseDep = None
+    service: NoteService = Depends(get_note_service)
 ):
     """Get single note details"""
-    result = await db.execute(select(Note).where(Note.id == note_id))
-    note = result.scalar_one_or_none()
-    if not note:
-        raise HTTPException(status_code=404, detail="Note not found")
+    note = await service.get_note_by_id(note_id)
     
-    return {
-        "id": note.id,
-        "title": note.title,
-        "content": note.content,
-        "created_at": note.created_at,
-        "updated_at": note.updated_at,
-        "source_file": note.source_file,
-        "note_metadata": note.note_metadata
+    if not note:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Note not found"
+        )
+    
+    return note
+
+
+@router.delete(
+    "/{note_id}",
+    responses={
+        404: {"model": ErrorResponse, "description": "Note not found"},
+        200: {"description": "Note deleted successfully"}
     }
-
-
-@router.delete("/{note_id}")
+)
 async def delete_note(
     note_id: int,
-    db: DatabaseDep = None
+    service: NoteService = Depends(get_note_service)
 ):
     """
     Delete a note and all associated entities and relationships
     """
-    # Get note
-    result = await db.execute(select(Note).where(Note.id == note_id))
-    note = result.scalar_one_or_none()
+    result = await service.delete_note(note_id)
     
-    if not note:
-        raise HTTPException(status_code=404, detail="Note not found")
-    
-    note_title = note.title
-    
-    # Get all entities for this note
-    entities_result = await db.execute(select(Entity).where(Entity.note_id == note_id))
-    entities = entities_result.scalars().all()
-    entity_ids = [e.id for e in entities]
-    
-    # Delete relationships first
-    if entity_ids:
-        await db.execute(
-            delete(Relationship).where(
-                Relationship.source_entity_id.in_(entity_ids) | 
-                Relationship.target_entity_id.in_(entity_ids)
-            )
+    if result is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Note not found"
         )
     
-    # Delete entities
-    await db.execute(delete(Entity).where(Entity.note_id == note_id))
-    
-    # Delete note
-    await db.delete(note)
-    await db.commit()
-    
-    logger.info(f"Note deleted: {note_id} - {note_title}")
+    note_id, note_title = result
     
     return {
         "note_id": note_id,
@@ -254,4 +188,3 @@ async def delete_note(
         "status": "deleted",
         "message": f"Note '{note_title}' and all associated data deleted successfully"
     }
-

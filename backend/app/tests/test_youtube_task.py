@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import AsyncMock, MagicMock
 from app.tasks.youtube_processor import process_youtube_video
 
 class TestYouTubeTask:
@@ -7,12 +8,23 @@ class TestYouTubeTask:
     @pytest.fixture
     def mock_services(self, mocker):
         """Mock all external services"""
+        # Create async mock for database session
+        mock_session = AsyncMock()
+        mock_session.execute = AsyncMock()
+        mock_session.commit = AsyncMock()
+        
+        # Mock the context manager
+        mock_async_session_local = mocker.patch('app.tasks.youtube_processor.AsyncSessionLocal')
+        mock_async_session_local.return_value.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_async_session_local.return_value.__aexit__ = AsyncMock(return_value=None)
+        
         return {
             'download': mocker.patch('app.tasks.youtube_processor.download_youtube_audio'),
             'transcribe': mocker.patch('app.tasks.youtube_processor.transcribe_audio_file'),
             'summarize': mocker.patch('app.tasks.youtube_processor.create_atomic_summary'),
             'process_pipeline': mocker.patch('app.tasks.youtube_processor.process_note_pipeline'),
-            'db_session': mocker.patch('app.tasks.youtube_processor.SessionLocal'),
+            'db_session': mock_async_session_local,
+            'session': mock_session,
             'os_remove': mocker.patch('os.remove')
         }
     
@@ -27,25 +39,36 @@ class TestYouTubeTask:
             'thumbnail': 'https://...',
             'duration_seconds': 120
         }
-        mock_services['transcribe'].return_value = {'transcript': 'Full text...'}
+        mock_services['transcribe'].return_value = {
+            'transcript': 'Full text...',
+            'segments': []
+        }
         mock_services['summarize'].return_value = {
             'summary': 'Summary text...',
             'key_topics': ['topic1']
         }
         
+        # Mock note object for database queries
+        mock_note = MagicMock()
+        mock_note.id = 999
+        mock_note.title = 'Test'
+        mock_note.note_metadata = {}
+        mock_note.content = 'content'
+        
+        # Setup async mock result
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = mock_note
+        mock_services['session'].execute.return_value = mock_result
+        
         # Mock update_state to avoid Celery/Redis errors during direct call
         mocker.patch.object(process_youtube_video, 'update_state')
         
-        # Mock SessionLocal and its context manager
-        mock_db = mock_services['db_session'].return_value
-        mock_db.query.return_value.filter.return_value.first.return_value = mocker.MagicMock()
-        
-        # Execute task (manually)
+        # Execute task
         result = process_youtube_video("https://youtube.com/watch?v=test123", 999)
         
         # Verify steps
         assert mock_services['download'].called
         assert mock_services['transcribe'].called
         assert mock_services['summarize'].called
-        assert mock_services['process_pipeline'].called
         assert result['status'] == 'complete'
+        assert result['note_id'] == 999

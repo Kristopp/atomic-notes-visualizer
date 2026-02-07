@@ -1,24 +1,19 @@
 """
 Database configuration and session management (Async)
+Refactored to use Pydantic Settings
 """
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import declarative_base
-import os
-from dotenv import load_dotenv
 from typing import AsyncGenerator
 
-load_dotenv()
+from app.core.config import settings
 
-# Get URLs from env, ensuring the asyncpg driver is specified for the async engine
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/atomic_notes")
-ASYNC_DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
-
-# Create Async SQLAlchemy engine
+# Create Async SQLAlchemy engine using settings
 engine = create_async_engine(
-    ASYNC_DATABASE_URL,
-    pool_size=5,
-    max_overflow=10,
-    echo=True if os.getenv("DEBUG") == "True" else False,
+    settings.async_database_url,
+    pool_size=settings.db_pool_size,
+    max_overflow=settings.db_max_overflow,
+    echo=settings.db_echo,
     future=True
 )
 

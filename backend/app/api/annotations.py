@@ -3,6 +3,7 @@ Annotations API Router
 User annotations/notes on entities
 """
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 from typing import List, Annotated
