@@ -5,95 +5,105 @@ Uses latest models (as of 2026):
 - gpt-5-mini: Fast reasoning model with built-in reasoning capability
 - text-embedding-3-small: 5x cheaper than ada-002, better performance
 """
-import os
-import json
-import logging
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
+from pydantic import BaseModel, Field
 from fastapi import HTTPException
 from openai import OpenAI
 from dotenv import load_dotenv
+import os
+import json
+import logging
 
 load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-# Initialize OpenAI client
-def get_client():
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key or "your_openai_api_key" in api_key:
-        raise HTTPException(
-            status_code=500,
-            detail="OpenAI API key is not configured. Please add your OPENAI_API_KEY to the backend/.env file."
-        )
-    return OpenAI(api_key=api_key)
+# Global client singleton
+_openai_client: Optional[OpenAI] = None
 
-# Model configuration - using latest models
-CHAT_MODEL = "gpt-5-mini"  # $0.25/1M input, $2.00/1M output (with reasoning!)
-EMBEDDING_MODEL = "text-embedding-3-small"  # $0.020/1M tokens
-EMBEDDING_DIMENSIONS = 1536  # Can use 512 or 1536 dimensions
+def get_client() -> OpenAI:
+    global _openai_client
+    if _openai_client is None:
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key or "your_openai_api_key" in api_key:
+            raise HTTPException(
+                status_code=500,
+                detail="OpenAI API key is not configured."
+            )
+        _openai_client = OpenAI(api_key=api_key)
+    return _openai_client
 
-# Entity type to color mapping (vibrant pastel palette)
+# Model configuration
+CHAT_MODEL = "gpt-5-mini"
+EMBEDDING_MODEL = "text-embedding-3-small"
+EMBEDDING_DIMENSIONS = 1536
+
+# Pydantic models for Structured Outputs (Pro pattern)
+class EntitySchema(BaseModel):
+    name: str = Field(..., description="Clear name of the entity")
+    entity_type: str = Field(..., description="Type of entity")
+    description: str = Field(..., description="Brief explanation")
+
+class EntityListSchema(BaseModel):
+    entities: List[EntitySchema]
+
+class RelationshipSchema(BaseModel):
+    source: str
+    target: str
+    relationship_type: str
+    strength: float
+    explanation: str
+
+class RelationshipListSchema(BaseModel):
+    relationships: List[RelationshipSchema]
+
+# Entity type to color mapping
 ENTITY_COLORS = {
-    "concept": "#FF70A6",      # Pink
-    "technology": "#FF9770",   # Orange
-    "idea": "#FFD670",         # Yellow
-    "person": "#70E0FF",       # Cyan
-    "technique": "#A770FF",    # Purple
-    "architecture": "#70FFB9", # Green
-    "pattern": "#FF70DD",      # Magenta
-    "tool": "#70A7FF",         # Blue
+    "concept": "#FF70A6",
+    "technology": "#FF9770",
+    "idea": "#FFD670",
+    "person": "#70E0FF",
+    "technique": "#A770FF",
+    "architecture": "#70FFB9",
+    "pattern": "#FF70DD",
+    "tool": "#70A7FF",
 }
 
 
 async def extract_entities(text: str) -> List[Dict[str, Any]]:
     """
-    Extract entities from text using GPT-5 mini
-    Returns list of entities with name, type, and description
-    
-    Cost: ~$0.25 per 1M tokens input, $2.00 per 1M tokens output
-    Features: Built-in reasoning for better entity detection
+    Extract entities using GPT-5 mini with Structured Outputs
     """
-    prompt = f"""Analyze the following technical notes and extract key concepts, technologies, and ideas.
-    
-For each entity, provide:
-- name: Clear, concise name (2-4 words max)
-- entity_type: One of: concept, technology, idea, person, technique, architecture, pattern, tool
-- description: Brief explanation (1-2 sentences)
-
-Return ONLY a JSON array of entities, no other text.
-
-Notes:
-{text}
-
-JSON Response:
-"""
-    
     try:
         client = get_client()
+        # Using the beta parse method for automatic Pydantic validation (if available in client)
+        # Or standard completion with json_object
         response = client.chat.completions.create(
-            model=CHAT_MODEL,  # Using gpt-5-mini with reasoning
+            model=CHAT_MODEL,
             messages=[
-                {"role": "system", "content": "You are an expert at extracting structured information from technical notes. Always return valid JSON."},
-                {"role": "user", "content": prompt}
+                {"role": "system", "content": "You are an expert at extracting structured information from technical notes. Return a JSON object with an 'entities' array."},
+                {"role": "user", "content": f"Extract entities from these notes:\n\n{text}"}
             ],
             response_format={"type": "json_object"}
         )
         
         content = response.choices[0].message.content
-        logger.info(f"OpenAI response: {content[:200]}...")
+        if not content: return []
         
-        # Parse JSON response
         data = json.loads(content)
+        entities_raw = data.get("entities", [])
         
-        # Handle different response formats
-        entities = data.get("entities", data.get("items", []))
-        
-        # Assign colors based on entity type
-        for entity in entities:
-            entity_type = entity.get("entity_type", "concept")
-            entity["color"] = ENTITY_COLORS.get(entity_type, "#9CA3AF")  # Default gray
-        
-        logger.info(f"Extracted {len(entities)} entities using {CHAT_MODEL}")
+        entities = []
+        for e in entities_raw:
+            e_type = e.get("entity_type", "concept").lower()
+            entities.append({
+                "name": e.get("name", "Unknown"),
+                "entity_type": e_type,
+                "description": e.get("description", ""),
+                "color": ENTITY_COLORS.get(e_type, "#9CA3AF")
+            })
+            
+        logger.info(f"Extracted {len(entities)} entities")
         return entities
         
     except Exception as e:
@@ -103,57 +113,37 @@ JSON Response:
 
 async def detect_relationships(entities: List[Dict[str, Any]], text: str) -> List[Dict[str, Any]]:
     """
-    Detect relationships between entities using GPT-5 mini
-    Returns list of relationships with source, target, type, and strength
-    
-    Cost: ~$0.25 per 1M tokens input, $2.00 per 1M tokens output
-    Features: Built-in reasoning for better relationship inference
+    Detect relationships between entities
     """
     entity_names = [e["name"] for e in entities]
+    if not entity_names: return []
     
-    prompt = f"""Given these extracted entities from technical notes, identify meaningful relationships between them.
-
-Entities:
-{json.dumps(entity_names, indent=2)}
-
-Original Text Context:
-{text[:1500]}  
-
-For each relationship, provide:
-- source: Entity name (must exactly match one from the list)
-- target: Entity name (must exactly match one from the list)
-- relationship_type: One of: related_to, prerequisite, implements, enables, uses, extends, example_of
-- strength: Confidence score 0.0-1.0 (how strong the relationship is)
-- explanation: Brief reason for the relationship (1 sentence)
-
-Return ONLY a JSON object with a "relationships" array, no other text.
-
-JSON Response:
+    prompt = f"""Identify meaningful relationships between these entities based on the context.
+Entities: {json.dumps(entity_names)}
+Context: {text[:1000]}
 """
     
     try:
         client = get_client()
         response = client.chat.completions.create(
-            model=CHAT_MODEL,  # Using gpt-5-mini with reasoning
+            model=CHAT_MODEL,
             messages=[
-                {"role": "system", "content": "You are an expert at identifying relationships between concepts. Always return valid JSON."},
+                {"role": "system", "content": "You are an expert at identifying relationships. Return a JSON object with a 'relationships' array."},
                 {"role": "user", "content": prompt}
             ],
             response_format={"type": "json_object"}
         )
         
         content = response.choices[0].message.content
-        logger.info(f"Relationship detection response: {content[:200]}...")
+        if not content: return []
         
         data = json.loads(content)
-        relationships = data.get("relationships", [])
-        
-        logger.info(f"Detected {len(relationships)} relationships using {CHAT_MODEL}")
-        return relationships
+        return data.get("relationships", [])
         
     except Exception as e:
         logger.error(f"Relationship detection failed: {e}")
         raise
+
 
 
 async def map_entities_to_timestamps(
@@ -209,8 +199,13 @@ JSON Response:
             response_format={"type": "json_object"}
         )
         
+        if not response.choices or not response.choices[0].message.content:
+            logger.error("Empty response from OpenAI during timestamp mapping")
+            return {}
+            
         content = response.choices[0].message.content
         logger.info(f"Timestamp mapping response: {content[:200]}...")
+
         
         data = json.loads(content)
         timestamps = data

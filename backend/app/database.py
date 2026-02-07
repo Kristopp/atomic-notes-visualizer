@@ -1,37 +1,42 @@
 """
-Database configuration and session management
+Database configuration and session management (Async)
 """
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import QueuePool
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy.orm import declarative_base
 import os
 from dotenv import load_dotenv
+from typing import AsyncGenerator
 
 load_dotenv()
 
+# Get URLs from env, ensuring the asyncpg driver is specified for the async engine
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/atomic_notes")
+ASYNC_DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
 
-# Create SQLAlchemy engine with connection pooling
-engine = create_engine(
-    DATABASE_URL,
-    poolclass=QueuePool,
+# Create Async SQLAlchemy engine
+engine = create_async_engine(
+    ASYNC_DATABASE_URL,
     pool_size=5,
     max_overflow=10,
-    echo=True if os.getenv("DEBUG") == "True" else False
+    echo=True if os.getenv("DEBUG") == "True" else False,
+    future=True
 )
 
-# Session factory
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+# Async Session factory
+AsyncSessionLocal = async_sessionmaker(
+    engine, 
+    class_=AsyncSession, 
+    expire_on_commit=False
+)
 
 # Base class for models
 Base = declarative_base()
 
 
-def get_db():
-    """Dependency for FastAPI routes"""
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    """Async dependency for FastAPI routes"""
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+        finally:
+            await session.close()

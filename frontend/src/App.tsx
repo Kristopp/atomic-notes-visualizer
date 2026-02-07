@@ -319,63 +319,71 @@ function App() {
   );
 
   return (
-    <div className="min-h-screen text-slate-200">
+    <div className="min-h-screen text-slate-400 font-sans selection:bg-blue-500/30">
+      {/* Precision Layering */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-indigo-500/10 blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-purple-500/10 blur-[120px]" />
+        <div className="absolute top-0 left-0 w-full h-full opacity-[0.03] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] blend-overlay" />
+        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-blue-600/10 blur-[160px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-indigo-600/5 blur-[120px]" />
       </div>
 
+      <div className="scanline" />
+
       <header className="glass border-b border-white/5 sticky top-0 z-50 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 via-transparent to-purple-500/5 pointer-events-none" />
-        <div className="max-w-[1600px] mx-auto px-6 py-6 relative">
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/[0.02] via-transparent to-indigo-500/[0.02] pointer-events-none" />
+        <div className="max-w-[1800px] mx-auto px-8 py-4 relative">
           <div className="flex items-center justify-between">
             <div className="group cursor-default">
-              <div className="flex items-center gap-4 mb-1">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-2xl shadow-indigo-500/40 group-hover:rotate-[10deg] transition-all duration-500">
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+              <div className="flex items-center gap-5">
+                <div className="relative">
+                  <div className="w-10 h-10 rounded bg-blue-600 flex items-center justify-center shadow-2xl shadow-blue-500/20 group-hover:bg-blue-500 transition-all duration-500">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                  </div>
+                  <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(59,130,246,1)]" />
                 </div>
                 <div>
-                  <h1 className="text-3xl font-black tracking-tight text-white flex items-center gap-2">
-                    Atomic
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Notes</span>
+                  <h1 className="text-xl font-bold tracking-tighter text-white font-mono flex items-center gap-3">
+                    ATOMIC_VISUALIZER
+                    <span className="text-[10px] bg-white/5 border border-white/10 px-1.5 py-0.5 rounded text-slate-500 font-mono tracking-normal">SYS_STABLE</span>
                   </h1>
-                  <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.3em] leading-none mt-1">AI Knowledge Engine</p>
+                  <p className="text-[9px] text-slate-600 font-bold uppercase tracking-[0.4em] leading-none mt-1.5 font-mono">Neural Knowledge Mapping Engine</p>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-8">
-              <nav className="hidden md:flex items-center gap-6">
-                <a href="#" className="text-xs font-bold uppercase tracking-widest text-indigo-400 border-b-2 border-indigo-500 pb-1">Visualizer</a>
-                <a href="#" className="text-xs font-bold uppercase tracking-widest text-slate-500 hover:text-slate-300 transition-colors">Graph View</a>
-                <a href="#" className="text-xs font-bold uppercase tracking-widest text-slate-500 hover:text-slate-300 transition-colors">Compare</a>
+            <div className="flex items-center gap-10">
+              <nav className="hidden xl:flex items-center gap-8">
+                {['Topology', 'Analysis', 'Registry', 'Diagnostics'].map((item) => (
+                  <a key={item} href="#" className={`text-[10px] font-black uppercase tracking-[0.2em] transition-all ${item === 'Topology' ? 'text-blue-500' : 'text-slate-600 hover:text-slate-400'}`}>
+                    {item}
+                  </a>
+                ))}
               </nav>
 
-              <div className="h-8 w-px bg-white/10 hidden md:block" />
+              <div className="h-6 w-px bg-white/5 hidden md:block" />
 
-              <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
-                <div className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              <div className="flex items-center gap-4 px-4 py-2 rounded border border-white/5 bg-white/[0.02]">
+                <div className="flex gap-1">
+                  {[1, 2, 3].map(i => <div key={i} className={`w-1 h-3 rounded-full ${i <= 2 ? 'bg-blue-500' : 'bg-white/5'}`} />)}
                 </div>
-                <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500/80">System Live</span>
+                <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500 font-mono">CORE_LOAD: 24%</span>
               </div>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-[1600px] mx-auto px-6 py-10">
+      <main className="max-w-[1800px] mx-auto px-8 py-8">
         {error && (
-          <div className="mb-8 p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-200 text-sm font-medium flex items-center gap-3 animate-slideIn">
-            <svg className="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          <div className="mb-8 p-4 bg-blue-500/5 border border-blue-500/10 text-blue-400 text-[10px] font-mono uppercase tracking-widest flex items-center gap-4 animate-slideIn">
+            <span className="flex-none bg-blue-500/20 px-2 py-0.5 rounded text-blue-300">ALERT</span>
             {error}
           </div>
         )}
 
-        <div className="grid grid-cols-12 gap-6 items-start">
+        <div className="grid grid-cols-12 gap-8 items-start">
           {/* Left Panel: Management */}
-          <aside className="col-span-12 lg:col-span-3 space-y-6">
+          <aside className="col-span-12 lg:col-span-3 space-y-8">
             {activeJobs.map(jobId => (
               <JobProgressTracker
                 key={jobId}
@@ -386,28 +394,26 @@ function App() {
               />
             ))}
 
-            <div className="glass-card rounded-3xl p-1 overflow-hidden">
-              <UploadPanel onFileUpload={handleFileUpload} isProcessing={isProcessing} />
-            </div>
+            <UploadPanel onFileUpload={handleFileUpload} isProcessing={isProcessing} />
 
-            <div className="glass-card rounded-3xl p-6">
-              <h2 className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 mb-6 flex items-center justify-between">
-                <span>Knowledge Base</span>
-                <span className="bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded text-[9px]">{allNotes.length} Notes</span>
+            <div className="glass rounded-2xl p-6 industrial-border">
+              <h2 className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-600 mb-6 flex items-center justify-between font-mono">
+                <span>DATA_VAULT</span>
+                <span className="text-blue-500">{allNotes.length} UNITS</span>
               </h2>
-              <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+              <div className="space-y-1.5 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar font-mono">
                 {allNotes.map((note) => (
                   <div key={note.id}
-                    className={`group relative p-3 rounded-2xl border transition-all duration-300 cursor-pointer ${note.id === currentNoteId ? 'bg-indigo-500/10 border-indigo-500/30' : 'bg-white/5 border-transparent hover:border-white/10 hover:bg-white/10'}`}
+                    className={`group relative p-3 rounded transition-all duration-300 cursor-pointer border ${note.id === currentNoteId ? 'bg-blue-500/10 border-blue-500/20' : 'bg-white/[0.02] border-transparent hover:border-white/5 hover:bg-white/[0.04]'}`}
                     onClick={() => note.entity_count > 0 && loadGraphData(note.id)}
                   >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${note.id === currentNoteId ? 'bg-indigo-500 text-white' : 'bg-slate-800 text-slate-400 group-hover:bg-slate-700'}`}>
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                    <div className="flex items-center gap-4">
+                      <div className={`text-[10px] font-bold ${note.id === currentNoteId ? 'text-blue-500' : 'text-slate-700'}`}>
+                        {String(note.id).padStart(3, '0')}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-bold truncate ${note.id === currentNoteId ? 'text-white' : 'text-slate-300'}`}>{note.title}</p>
-                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{note.entity_count} Entities</p>
+                        <p className={`text-xs font-bold truncate ${note.id === currentNoteId ? 'text-white' : 'text-slate-400'}`}>{note.title.toUpperCase()}</p>
+                        <p className="text-[9px] text-slate-600 font-bold uppercase tracking-tight">{note.entity_count} ENTITIES_DETECTED</p>
                       </div>
                     </div>
 
@@ -416,23 +422,17 @@ function App() {
                         <button
                           onClick={(e) => { e.stopPropagation(); handleProcessNote(note.id, note.title); }}
                           disabled={processingNoteId === note.id || deletingNoteId === note.id}
-                          className="p-1.5 bg-emerald-500/20 hover:bg-emerald-500/40 text-emerald-400 rounded-lg transition-all disabled:opacity-50"
-                          title="Process with AI"
+                          className="p-1 px-2 border border-emerald-500/30 text-emerald-500 text-[8px] font-bold uppercase hover:bg-emerald-500/10 transition-all disabled:opacity-50"
                         >
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                          PROCESS
                         </button>
                       )}
                       <button
                         onClick={(e) => { e.stopPropagation(); setShowDeleteConfirm({ noteId: note.id, title: note.title, entityCount: note.entity_count }); }}
                         disabled={deletingNoteId === note.id}
-                        className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition-all disabled:opacity-50"
-                        title="Delete note"
+                        className="p-1 px-2 border border-red-500/30 text-red-500 text-[8px] font-bold uppercase hover:bg-red-500/10 transition-all"
                       >
-                        {deletingNoteId === note.id ? (
-                          <div className="w-3.5 h-3.5 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />
-                        ) : (
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                        )}
+                        PURGE
                       </button>
                     </div>
                   </div>
@@ -444,65 +444,66 @@ function App() {
           </aside>
 
           {/* Main Visualizer Area */}
-          <div className="col-span-12 lg:col-span-9 space-y-6">
-            <div className="grid grid-cols-12 gap-6">
+          <div className="col-span-12 lg:col-span-9 space-y-8">
+            <div className="grid grid-cols-12 gap-8">
               {/* Search Bento */}
-              <div className="col-span-12 glass-card rounded-3xl p-2">
+              <div className="col-span-12">
                 <SearchBar onSearch={handleSearch} onYouTubeProcess={handleYouTubeProcess} />
               </div>
 
               {/* Main Graph Bento */}
-              <div className="col-span-12 lg:col-span-8 glass-card rounded-[2.5rem] p-2 aspect-[4/3] lg:aspect-auto lg:h-[700px] relative group overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent pointer-events-none" />
+              <div className="col-span-12 xl:col-span-8 glass rounded-3xl h-[800px] relative group overflow-hidden border border-white/5 shadow-2xl">
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 px-4 py-1.5 border-x border-b border-white/5 bg-white/[0.02] rounded-b-xl z-10">
+                  <span className="text-[9px] font-bold text-slate-600 uppercase tracking-[0.3em] font-mono">WORKSPACE://KNOWLEDGE_GRAPH</span>
+                </div>
+
                 {graphData.nodes.length > 0 ? (
-                  <GraphCanvas data={filteredGraphData || graphData} width={1200} height={700} onNodeClick={handleNodeClick} />
+                  <GraphCanvas data={filteredGraphData || graphData} width={1200} height={800} onNodeClick={handleNodeClick} />
                 ) : (
-                  <div className="flex flex-col items-center justify-center h-full text-slate-500">
-                    <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-6 animate-pulse">
-                      <svg className="w-10 h-10 text-indigo-400/30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                  <div className="flex flex-col items-center justify-center h-full text-slate-700">
+                    <div className="w-16 h-16 border-2 border-dashed border-white/10 rounded-full flex items-center justify-center mb-8 animate-spin-slow">
+                      <svg className="w-8 h-8 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                     </div>
-                    <h3 className="text-xl font-black text-white mb-2">Initialize Canvas</h3>
-                    <p className="text-sm text-slate-500 max-w-xs text-center font-medium">Connect notes to visualize the hidden patterns in your knowledge base.</p>
+                    <h3 className="text-sm font-bold text-white uppercase tracking-[0.2em] font-mono">Awaiting_Input</h3>
+                    <p className="text-[10px] text-slate-600 mt-2 max-w-[200px] text-center font-mono uppercase leading-relaxed">System initialized. Upload data to begin mapping neural connections.</p>
                   </div>
                 )}
 
                 {/* Graph HUD */}
-                <div className="absolute bottom-6 left-6 flex gap-2">
-                  <div className="bg-slate-900/80 backdrop-blur-md border border-white/10 rounded-xl px-4 py-2 flex items-center gap-4">
+                <div className="absolute bottom-8 left-8 flex gap-3">
+                  <div className="bg-black/60 backdrop-blur-xl border border-white/10 rounded p-4 flex items-center gap-8 font-mono">
                     <div className="flex flex-col">
-                      <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">Nodes</span>
-                      <span className="text-sm font-black text-white">{(filteredGraphData || graphData).nodes.length}</span>
+                      <span className="text-[8px] font-black uppercase tracking-widest text-slate-600 mb-1">NODES_ARRAY</span>
+                      <span className="text-lg font-bold text-white leading-none">{(filteredGraphData || graphData).nodes.length}</span>
                     </div>
-                    <div className="w-px h-6 bg-white/10" />
+                    <div className="w-px h-8 bg-white/5" />
                     <div className="flex flex-col">
-                      <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">Edges</span>
-                      <span className="text-sm font-black text-white">{(filteredGraphData || graphData).links.length}</span>
+                      <span className="text-[8px] font-black uppercase tracking-widest text-slate-600 mb-1">EDGE_CONNECTIONS</span>
+                      <span className="text-lg font-bold text-white leading-none">{(filteredGraphData || graphData).links.length}</span>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Selected Node / Details Bento */}
-              <div className="col-span-12 lg:col-span-4 space-y-6">
+              <div className="col-span-12 xl:col-span-4 space-y-8">
                 {selectedNode ? (
-                  <div className="glass-card rounded-[2.5rem] p-8 h-full flex flex-col border-l-4 border-indigo-500 animate-slideIn">
-                    <div className="flex items-start justify-between mb-8">
-                      <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 flex items-center justify-center text-indigo-400">
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                      </div>
-                      <button onClick={() => setSelectedNode(null)} className="p-2 hover:bg-white/5 rounded-xl transition-colors text-slate-500 hover:text-white">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                  <div className="glass rounded-3xl p-10 h-full flex flex-col border-white/5 industrial-border animate-slideIn">
+                    <div className="flex items-start justify-between mb-10">
+                      <div className="text-[10px] font-mono text-blue-500 font-bold tracking-widest">CONCEPT_ID: {String(selectedNode.id).padStart(4, '0')}</div>
+                      <button onClick={() => setSelectedNode(null)} className="p-1 hover:text-white transition-colors text-slate-700">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                       </button>
                     </div>
 
-                    <h3 className="text-2xl font-black text-white mb-2 leading-tight">{selectedNode.name}</h3>
-                    <div className="inline-flex items-center px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[10px] font-black uppercase tracking-widest text-indigo-400 mb-8 w-fit">
-                      {selectedNode.type}
+                    <h3 className="text-2xl font-bold text-white mb-3 font-mono leading-tight tracking-tighter uppercase">{selectedNode.name}</h3>
+                    <div className="inline-flex items-center px-2 py-0.5 rounded border border-blue-500/20 bg-blue-500/5 text-[9px] font-bold uppercase tracking-widest text-blue-400 mb-10 font-mono w-fit">
+                      TYPE_{selectedNode.type}
                     </div>
 
-                    <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 mb-8">
-                      <p className="text-slate-400 text-sm leading-relaxed font-medium">
-                        {selectedNode.description || 'No description available for this concept.'}
+                    <div className="flex-1 overflow-y-auto custom-scrollbar pr-4 mb-10">
+                      <p className="text-slate-500 text-xs leading-relaxed font-medium font-mono uppercase">
+                        {selectedNode.description || 'No descriptive data mapped for this unit.'}
                       </p>
                     </div>
 
@@ -510,34 +511,31 @@ function App() {
                       const currentNote = allNotes.find(n => n.id === currentNoteId);
                       const isYouTube = currentNote?.note_metadata?.source === 'youtube';
                       const videoId = currentNote?.note_metadata?.video_id;
-                      
+
                       if (!isYouTube || !videoId) return null;
-                      
+
                       return (
                         <a
                           href={`https://www.youtube.com/watch?v=${videoId}&t=${Math.floor(selectedNode.timestamp)}s`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-3 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-2xl hover:bg-red-500/20 transition-all mb-6 group"
+                          className="flex items-center gap-4 px-5 py-4 bg-white/[0.02] border border-white/5 rounded-xl hover:bg-white/[0.04] transition-all mb-10 group"
                         >
-                          <svg className="w-5 h-5 text-red-500 group-hover:text-red-400 transition-colors" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.245 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/>
+                          <svg className="w-6 h-6 text-red-600" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.245 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z" />
                           </svg>
                           <div className="flex-1">
-                            <p className="text-xs font-bold uppercase tracking-widest text-red-400">View on YouTube</p>
-                            <p className="text-sm text-white font-medium">at {formatTimestamp(selectedNode.timestamp)}</p>
+                            <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-slate-600">MEDIA_SOURCE</p>
+                            <p className="text-xs text-white font-mono">T_{formatTimestamp(selectedNode.timestamp)}</p>
                           </div>
-                          <svg className="w-4 h-4 text-slate-500 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                          </svg>
                         </a>
                       );
                     })()}
 
-                    <div className="pt-8 border-t border-white/5 space-y-6">
-                      <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2">
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                        Personal Context ({annotations.length})
+                    <div className="pt-10 border-t border-white/5 space-y-8">
+                      <h4 className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-700 flex items-center gap-3 font-mono">
+                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full" />
+                        USER_ANNOTATIONS
                       </h4>
 
                       <div className="flex gap-2">
@@ -546,25 +544,25 @@ function App() {
                           value={newAnnotation}
                           onChange={(e) => setNewAnnotation(e.target.value)}
                           onKeyDown={(e) => e.key === 'Enter' && handleAddAnnotation()}
-                          placeholder="Add thought..."
-                          className="flex-1 bg-white/5 border border-white/5 rounded-xl px-4 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500/50 transition-colors"
+                          placeholder="INPUT_THOUGHT..."
+                          className="flex-1 bg-white/[0.02] border border-white/5 rounded px-4 py-2.5 text-[10px] text-white placeholder-slate-800 font-mono focus:outline-none focus:border-blue-500/30 transition-colors uppercase"
                         />
                         <button
                           onClick={handleAddAnnotation}
                           disabled={!newAnnotation.trim() || isAddingAnnotation}
-                          className="bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white p-2 rounded-xl transition-all shadow-lg shadow-indigo-500/20"
+                          className="bg-blue-600 hover:bg-blue-500 disabled:opacity-30 text-white p-2.5 rounded transition-all font-mono"
                         >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" /></svg>
                         </button>
                       </div>
 
-                      <div className="space-y-3">
+                      <div className="space-y-4">
                         {annotations.map((ann) => (
-                          <div key={ann.id} className="group bg-white/5 border border-white/5 rounded-2xl p-4 hover:bg-white/10 transition-all">
+                          <div key={ann.id} className="group border-l-2 border-white/5 pl-4 hover:border-blue-500/30 transition-all">
                             <div className="flex justify-between items-start gap-4">
-                              <p className="text-xs text-slate-300 leading-relaxed font-medium">{ann.user_note}</p>
-                              <button onClick={() => handleDeleteAnnotation(ann.id)} className="opacity-0 group-hover:opacity-100 text-slate-600 hover:text-red-400 transition-all">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                              <p className="text-[10px] text-slate-600 leading-relaxed font-mono uppercase">{ann.user_note}</p>
+                              <button onClick={() => handleDeleteAnnotation(ann.id)} className="opacity-0 group-hover:opacity-100 text-slate-800 hover:text-red-500 transition-all">
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                               </button>
                             </div>
                           </div>
@@ -573,12 +571,12 @@ function App() {
                     </div>
                   </div>
                 ) : (
-                  <div className="glass-card rounded-[2.5rem] p-8 h-full flex flex-col items-center justify-center text-center opacity-40">
-                    <div className="w-20 h-20 rounded-full border-2 border-dashed border-white/10 flex items-center justify-center mb-6">
-                      <svg className="w-8 h-8 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5" /></svg>
+                  <div className="glass rounded-3xl p-10 h-full flex flex-col items-center justify-center text-center">
+                    <div className="w-16 h-16 rounded-full border border-white/5 flex items-center justify-center mb-6 opacity-20">
+                      <svg className="w-6 h-6 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5" /></svg>
                     </div>
-                    <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Select Node</p>
-                    <p className="text-[10px] text-slate-600 mt-2 max-w-[140px] font-medium leading-relaxed">Click any concept on the map to see its full context and add notes.</p>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-slate-700 font-mono">SELECT_UNIT</p>
+                    <p className="text-[9px] text-slate-800 mt-4 max-w-[160px] font-mono leading-relaxed uppercase tracking-tight">ENGAGE_NODE_TO_ACCESS_NEURAL_DATA</p>
                   </div>
                 )}
               </div>

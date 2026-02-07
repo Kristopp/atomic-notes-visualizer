@@ -2,15 +2,17 @@
 Atomic Notes Visualizer - FastAPI Backend
 Following Test-Driven Agent (TDA) Pattern
 """
-import os
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import uvicorn
+import os
 
 # Import logging setup
 from app.core.logging_config import setup_logging, get_logger, get_request_id
 from app.core.middleware import RequestIDMiddleware
+from app.database import engine
 
 # Configure logging based on environment
 USE_JSON_LOGS = os.getenv("JSON_LOGS", "false").lower() == "true"
@@ -19,14 +21,35 @@ setup_logging(level=LOG_LEVEL, use_json=USE_JSON_LOGS)
 
 logger = get_logger(__name__)
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup logic
+    logger.info("Starting up Atomic Notes Visualizer API...")
+    # Verify DB connection
+    try:
+        from sqlalchemy import text
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+        logger.info("Database connection verified.")
+    except Exception as e:
+        logger.error(f"Database connection failed: {e}")
+    
+    yield
+    
+    # Shutdown logic
+    logger.info("Shutting down...")
+    await engine.dispose()
+
 # Import routers
 from app.api import notes, search, annotations, youtube
 
 app = FastAPI(
     title="Atomic Notes Visualizer API",
     description="AI-powered knowledge graph visualization from atomic notes",
-    version="0.1.0"
+    version="0.1.0",
+    lifespan=lifespan
 )
+
 
 # Request ID middleware (must be first to ensure all logs have request_id)
 app.add_middleware(RequestIDMiddleware)
@@ -101,11 +124,21 @@ async def root():
 @app.get("/health")
 async def health_check():
     """Detailed health check"""
+    db_status = "connected"
+    try:
+        from sqlalchemy import text
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+    except Exception as e:
+        logger.error(f"Health check DB failed: {e}")
+        db_status = f"error: {str(e)}"
+        
     return {
-        "status": "healthy",
-        "database": "connected",  # TODO: Add actual DB check
+        "status": "healthy" if db_status == "connected" else "degraded",
+        "database": db_status,
         "pgvector": "enabled"
     }
+
 
 
 if __name__ == "__main__":

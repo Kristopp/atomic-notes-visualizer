@@ -45,3 +45,6 @@ cypress/screenshots/
 .cache/
 temp/
 tmp/
+SKILLS_INDEX.md
+all_skill_dirs.txt
+all_skills.txt

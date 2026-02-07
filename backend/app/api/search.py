@@ -3,8 +3,8 @@ Search API Router
 Semantic search via vector embeddings using pgvector cosine similarity
 """
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy.orm import Session
-from typing import Optional
+from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Optional, Annotated
 import logging
 
 from app.database import get_db
@@ -15,6 +15,9 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/search", tags=["search"])
 
+# Using Annotated for cleaner dependency injection
+DatabaseDep = Annotated[AsyncSession, Depends(get_db)]
+
 
 @router.get("/")
 async def semantic_search(
@@ -23,7 +26,7 @@ async def semantic_search(
     min_similarity: float = Query(0.5, ge=0.0, le=1.0, description="Minimum similarity threshold"),
     search_type: str = Query("entities", description="Search type: 'entities' or 'notes'"),
     use_mock: bool = Query(True, description="Use mock embeddings (true) or real OpenAI embeddings (false)"),
-    db: Session = Depends(get_db)
+    db: DatabaseDep = None
 ):
     """
     Semantic search using vector embeddings and pgvector cosine similarity
@@ -53,7 +56,7 @@ async def semantic_search(
                 {
                     "id": note.id,
                     "title": note.title,
-                    "content": note.content[:200] + "..." if len(note.content) > 200 else note.content,
+                    "content": note.content[:200] + "..." if note.content and len(note.content) > 200 else (note.content or ""),
                     "similarity": round(similarity, 3),
                     "created_at": note.created_at.isoformat() if note.created_at else None
                 }
@@ -98,9 +101,14 @@ async def semantic_search(
         logger.error(f"Search error: {str(e)}")
         # Fallback to basic text search if vector search fails
         logger.warning("Falling back to text-based search")
-        entities = db.query(Entity).filter(
-            Entity.name.ilike(f"%{q}%") | Entity.description.ilike(f"%{q}%")
-        ).limit(limit).all()
+        
+        from sqlalchemy import or_, select
+        query = select(Entity).filter(
+            or_(Entity.name.ilike(f"%{q}%"), Entity.description.ilike(f"%{q}%"))
+        ).limit(limit)
+        
+        result = await db.execute(query)
+        entities = result.scalars().all()
         
         return {
             "query": q,
@@ -119,3 +127,4 @@ async def semantic_search(
             ],
             "count": len(entities)
         }
+

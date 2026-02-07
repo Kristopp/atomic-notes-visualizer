@@ -1,27 +1,30 @@
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from celery.result import AsyncResult
+from typing import Annotated
 import logging
 
 from app.database import get_db
 from app.services.youtube_audio import extract_video_id
 from app.services.job_queue import celery_app
 from app.tasks.youtube_processor import process_youtube_video
+from app.models.note import Note
 
 router = APIRouter(prefix="/api/youtube", tags=["youtube"])
-
 logger = logging.getLogger(__name__)
+
+# Using Annotated for cleaner dependency injection
+DatabaseDep = Annotated[AsyncSession, Depends(get_db)]
 
 class YouTubeRequest(BaseModel):
     url: str
 
-from app.models.note import Note
 
 @router.post("/process")
 async def start_youtube_processing(
     request: YouTubeRequest,
-    db: Session = Depends(get_db)
+    db: DatabaseDep = None
 ):
     """
     Start background job to process YouTube video
@@ -37,10 +40,10 @@ async def start_youtube_processing(
             note_metadata={"source": "youtube", "url": request.url}
         )
         db.add(new_note)
-        db.commit()
-        db.refresh(new_note)
+        await db.commit()
+        await db.refresh(new_note)
         
-        # Start background task
+        # Start background task (Celery is still sync-ish in how it's called, that's fine)
         task = process_youtube_video.delay(request.url, new_note.id)
         
         return {
@@ -53,6 +56,7 @@ async def start_youtube_processing(
     except Exception as e:
         logger.error(f"Error starting YouTube processing: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
 
 @router.get("/status/{job_id}")
 async def get_job_status(job_id: str):

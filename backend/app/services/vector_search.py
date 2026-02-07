@@ -7,11 +7,12 @@ OpenAI embeddings and PostgreSQL's pgvector extension for cosine similarity.
 For testing without API key: Uses mock embeddings (deterministic or random)
 For production: Uses real OpenAI text-embedding-3-small embeddings
 """
+from typing import List, Optional, Tuple
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import text, select
 import logging
 import hashlib
-from typing import List, Optional, Tuple
-from sqlalchemy.orm import Session
-from sqlalchemy import text, select
+
 from app.models.entity import Entity
 from app.models.note import Note
 
@@ -21,23 +22,15 @@ logger = logging.getLogger(__name__)
 EMBEDDING_DIMENSIONS = 1536  # text-embedding-3-small default
 
 
-def generate_mock_embedding(text: str, deterministic: bool = True) -> List[float]:
+def generate_mock_embedding(text_input: str, deterministic: bool = True) -> List[float]:
     """
     Generate a mock 1536-dimensional embedding for testing without API calls
-    
-    Args:
-        text: Input text to create embedding for
-        deterministic: If True, same text always produces same embedding (hash-based)
-                      If False, generates random embedding
-    
-    Returns:
-        List of 1536 floats (normalized to unit length for cosine similarity)
     """
     import numpy as np
     
     if deterministic:
         # Hash-based deterministic embedding (same text = same vector)
-        hash_digest = hashlib.sha256(text.encode()).digest()
+        hash_digest = hashlib.sha256(text_input.encode()).digest()
         # Use hash to seed random generator for reproducibility
         seed = int.from_bytes(hash_digest[:4], 'little')
         rng = np.random.RandomState(seed)
@@ -54,7 +47,7 @@ def generate_mock_embedding(text: str, deterministic: bool = True) -> List[float
 
 
 async def search_entities_by_similarity(
-    db: Session,
+    db: AsyncSession,
     query_text: str,
     limit: int = 10,
     min_similarity: float = 0.5,
@@ -62,16 +55,6 @@ async def search_entities_by_similarity(
 ) -> List[Tuple[Entity, float]]:
     """
     Semantic search for entities using vector similarity
-    
-    Args:
-        db: Database session
-        query_text: Search query text
-        limit: Maximum number of results
-        min_similarity: Minimum cosine similarity threshold (0.0 to 1.0)
-        use_mock: If True, use mock embeddings (for testing without API key)
-    
-    Returns:
-        List of (Entity, similarity_score) tuples, ordered by similarity desc
     """
     try:
         # Generate query embedding
@@ -86,20 +69,11 @@ async def search_entities_by_similarity(
             logger.info(f"Using real OpenAI embedding for query: '{query_text[:50]}...'")
         
         # pgvector cosine similarity search using <=> operator
-        # <=> is cosine distance (0 = identical, 2 = opposite)
-        # Similarity = 1 - (distance / 2)
-        # Convert list to vector string format: '[1.0, 2.0, ...]'
         query_embedding_str = str(query_embedding)
         
         query = text("""
             SELECT 
                 id, 
-                note_id,
-                name,
-                entity_type,
-                description,
-                color,
-                embedding,
                 1 - (embedding <=> CAST(:query_embedding AS vector)) AS similarity
             FROM entities
             WHERE embedding IS NOT NULL
@@ -108,19 +82,21 @@ async def search_entities_by_similarity(
             LIMIT :limit
         """)
         
-        result = db.execute(
+        result = await db.execute(
             query,
             {
-                "query_embedding": query_embedding_str,  # pgvector needs string format
+                "query_embedding": query_embedding_str,
                 "min_similarity": min_similarity,
                 "limit": limit
             }
         )
         
-        # Convert results to Entity objects with similarity scores
+        rows = result.all()
         matches = []
-        for row in result:
-            entity = db.query(Entity).filter(Entity.id == row.id).first()
+        for row in rows:
+            # Fetch the entity object
+            ent_res = await db.execute(select(Entity).where(Entity.id == row.id))
+            entity = ent_res.scalar_one_or_none()
             if entity:
                 matches.append((entity, float(row.similarity)))
         
@@ -133,7 +109,7 @@ async def search_entities_by_similarity(
 
 
 async def search_notes_by_similarity(
-    db: Session,
+    db: AsyncSession,
     query_text: str,
     limit: int = 5,
     min_similarity: float = 0.5,
@@ -141,16 +117,6 @@ async def search_notes_by_similarity(
 ) -> List[Tuple[Note, float]]:
     """
     Semantic search for notes using vector similarity
-    
-    Args:
-        db: Database session
-        query_text: Search query text
-        limit: Maximum number of results
-        min_similarity: Minimum cosine similarity threshold (0.0 to 1.0)
-        use_mock: If True, use mock embeddings (for testing without API key)
-    
-    Returns:
-        List of (Note, similarity_score) tuples, ordered by similarity desc
     """
     try:
         # Generate query embedding
@@ -163,19 +129,11 @@ async def search_notes_by_similarity(
             query_embedding = embeddings[0]
             logger.info(f"Using real OpenAI embedding for note search: '{query_text[:50]}...'")
         
-        # pgvector cosine similarity search
         query_embedding_str = str(query_embedding)
         
         query = text("""
             SELECT 
                 id,
-                title,
-                content,
-                embedding,
-                created_at,
-                updated_at,
-                source_file,
-                metadata,
                 1 - (embedding <=> CAST(:query_embedding AS vector)) AS similarity
             FROM notes
             WHERE embedding IS NOT NULL
@@ -184,19 +142,20 @@ async def search_notes_by_similarity(
             LIMIT :limit
         """)
         
-        result = db.execute(
+        result = await db.execute(
             query,
             {
-                "query_embedding": query_embedding_str,  # pgvector needs string format
+                "query_embedding": query_embedding_str,
                 "min_similarity": min_similarity,
                 "limit": limit
             }
         )
         
-        # Convert results to Note objects with similarity scores
+        rows = result.all()
         matches = []
-        for row in result:
-            note = db.query(Note).filter(Note.id == row.id).first()
+        for row in rows:
+            note_res = await db.execute(select(Note).where(Note.id == row.id))
+            note = note_res.scalar_one_or_none()
             if note:
                 matches.append((note, float(row.similarity)))
         
@@ -209,27 +168,20 @@ async def search_notes_by_similarity(
 
 
 async def find_related_entities(
-    db: Session,
+    db: AsyncSession,
     entity_id: int,
     limit: int = 5,
     min_similarity: float = 0.6
 ) -> List[Tuple[Entity, float]]:
     """
     Find entities similar to a given entity using vector similarity
-    
-    Args:
-        db: Database session
-        entity_id: Source entity ID
-        limit: Maximum number of related entities
-        min_similarity: Minimum similarity threshold
-    
-    Returns:
-        List of (Entity, similarity_score) tuples
     """
     try:
         # Get source entity
-        source_entity = db.query(Entity).filter(Entity.id == entity_id).first()
-        if not source_entity or not source_entity.embedding:
+        source_res = await db.execute(select(Entity).where(Entity.id == entity_id))
+        source_entity = source_res.scalar_one_or_none()
+        
+        if not source_entity or source_entity.embedding is None:
             logger.warning(f"Entity {entity_id} not found or has no embedding")
             return []
         
@@ -239,12 +191,6 @@ async def find_related_entities(
         query = text("""
             SELECT 
                 id,
-                note_id,
-                name,
-                entity_type,
-                description,
-                color,
-                embedding,
                 1 - (embedding <=> CAST(:source_embedding AS vector)) AS similarity
             FROM entities
             WHERE id != :entity_id
@@ -254,19 +200,21 @@ async def find_related_entities(
             LIMIT :limit
         """)
         
-        result = db.execute(
+        result = await db.execute(
             query,
             {
-                "source_embedding": source_embedding_str,  # pgvector needs string format
+                "source_embedding": source_embedding_str,
                 "entity_id": entity_id,
                 "min_similarity": min_similarity,
                 "limit": limit
             }
         )
         
+        rows = result.all()
         matches = []
-        for row in result:
-            entity = db.query(Entity).filter(Entity.id == row.id).first()
+        for row in rows:
+            ent_res = await db.execute(select(Entity).where(Entity.id == row.id))
+            entity = ent_res.scalar_one_or_none()
             if entity:
                 matches.append((entity, float(row.similarity)))
         
@@ -276,3 +224,4 @@ async def find_related_entities(
     except Exception as e:
         logger.error(f"Related entities search error: {str(e)}")
         raise
+

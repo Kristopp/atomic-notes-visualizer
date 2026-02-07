@@ -17,12 +17,12 @@ interface FilterControlsProps {
 const DEFAULT_TYPES = ['concept', 'technology', 'idea', 'person', 'technique', 'architecture'];
 
 const TYPE_COLORS: Record<string, string> = {
-  concept: '#FF70A6',
-  technology: '#FF9770',
-  idea: '#FFD670',
-  person: '#70E0FF',
-  technique: '#A770FF',
-  architecture: '#70FFB9',
+  concept: '#3B82F6',
+  technology: '#60A5FA',
+  idea: '#F97316',
+  person: '#A78BFA',
+  technique: '#34D399',
+  architecture: '#F472B6',
 };
 
 export default function FilterControls({
@@ -58,32 +58,29 @@ export default function FilterControls({
   };
 
   return (
-    <div className="glass rounded-2xl p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-bold text-white flex items-center gap-2">
-          <svg className="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+    <div className="glass rounded-2xl p-6 industrial-border">
+      <div className="flex items-center justify-between mb-8">
+        <h2 className="text-xs font-black text-slate-500 flex items-center gap-2 uppercase tracking-[0.2em] font-mono">
+          <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
           </svg>
-          Filters
+          Signal Filters
         </h2>
         <button
           onClick={handleReset}
-          className="
-            text-xs font-bold uppercase tracking-wider text-slate-500 hover:text-indigo-400
-            transition-colors duration-300
-          "
+          className="text-[9px] font-bold uppercase tracking-widest text-slate-600 hover:text-blue-500 transition-colors font-mono"
         >
-          Reset
+          [ RESET ]
         </button>
       </div>
 
       {/* Entity Types */}
-      <div className="mb-8">
-        <h3 className="text-[10px] uppercase tracking-widest font-bold text-slate-500 mb-4">Entity Types</h3>
-        <div className="space-y-2">
+      <div className="mb-10">
+        <h3 className="text-[9px] uppercase tracking-widest font-bold text-slate-600 mb-4 font-mono">CLASSIFICATION</h3>
+        <div className="space-y-1.5">
           {availableTypes.map((type) => {
             const isSelected = selectedTypes.includes(type);
-            const color = TYPE_COLORS[type] || '#9CA3AF';
+            const color = TYPE_COLORS[type] || '#475569';
 
             return (
               <label
@@ -98,30 +95,27 @@ export default function FilterControls({
                 />
                 <div
                   className={`
-                    w-6 h-6 rounded-lg flex items-center justify-center
+                    w-4 h-4 rounded-sm flex items-center justify-center
                     border transition-all duration-300
-                    ${isSelected ? 'border-indigo-500/50 bg-indigo-500/20 shadow-[0_0_10px_rgba(99,102,241,0.2)]' : 'border-slate-800 bg-slate-900 group-hover:border-slate-700'}
+                    ${isSelected ? 'border-blue-500/40 bg-blue-500/10' : 'border-white/5 bg-white/5 group-hover:border-white/10'}
                   `}
                 >
                   <div
-                    className={`w-2 h-2 rounded-full transition-transform duration-300 ${isSelected ? 'scale-125 shadow-[0_0_8px_currentColor]' : 'scale-100 opacity-40 group-hover:opacity-60'}`}
+                    className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${isSelected ? 'scale-100 shadow-[0_0_10px_currentColor]' : 'scale-75 opacity-20'}`}
                     style={{ backgroundColor: color, color }}
                   />
                 </div>
                 <span
                   className={`
-                    ml-3 text-xs font-bold uppercase tracking-widest
-                    ${isSelected ? 'text-slate-200' : 'text-slate-500'}
-                    group-hover:text-slate-300
-                    transition-colors duration-200
+                    ml-3 text-[10px] font-bold uppercase tracking-wider font-mono
+                    ${isSelected ? 'text-slate-200' : 'text-slate-600'}
+                    group-hover:text-slate-300 transition-colors
                   `}
                 >
                   {type}
                 </span>
                 {isSelected && (
-                  <svg className="ml-auto w-3 h-3 text-indigo-400 animate-in fade-in zoom-in duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                  </svg>
+                  <div className="ml-auto w-1 h-1 bg-blue-500 rounded-full animate-pulse" />
                 )}
               </label>
             );
@@ -131,74 +125,59 @@ export default function FilterControls({
 
       {/* Relationship Strength */}
       <div>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-[10px] uppercase tracking-widest font-bold text-slate-500">Min Strength</h3>
-          <span className="text-xs font-black text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="text-[9px] uppercase tracking-widest font-bold text-slate-600 font-mono">THRESHOLD</h3>
+          <span className="text-[10px] font-black text-blue-500 font-mono">
             {(minStrength * 100).toFixed(0)}%
           </span>
         </div>
 
-        <input
-          type="range"
-          min="0"
-          max="100"
-          step="5"
-          value={minStrength * 100}
-          onChange={(e) => handleStrengthChange(parseInt(e.target.value) / 100)}
-          className="
-            w-full h-1.5 rounded-lg appearance-none cursor-pointer
-            bg-slate-800 border border-white/5
-            [&::-webkit-slider-thumb]:appearance-none
-            [&::-webkit-slider-thumb]:w-4
-            [&::-webkit-slider-thumb]:h-4
-            [&::-webkit-slider-thumb]:rounded-full
-            [&::-webkit-slider-thumb]:bg-indigo-500
-            [&::-webkit-slider-thumb]:border-2
-            [&::-webkit-slider-thumb]:border-white/20
-            [&::-webkit-slider-thumb]:cursor-pointer
-            [&::-webkit-slider-thumb]:transition-all
-            [&::-webkit-slider-thumb]:duration-200
-            [&::-webkit-slider-thumb]:hover:bg-indigo-400
-            [&::-webkit-slider-thumb]:hover:scale-125
-            [&::-webkit-slider-thumb]:active:scale-110
-            [&::-moz-range-thumb]:w-4
-            [&::-moz-range-thumb]:h-4
-            [&::-moz-range-thumb]:rounded-full
-            [&::-moz-range-thumb]:bg-indigo-500
-            [&::-moz-range-thumb]:border-2
-            [&::-moz-range-thumb]:border-white/20
-            [&::-moz-range-thumb]:cursor-pointer
-            [&::-moz-range-thumb]:transition-all
-            [&::-moz-range-thumb]:duration-200
-            [&::-moz-range-thumb]:hover:bg-indigo-400
-            [&::-moz-range-thumb]:hover:scale-125
-          "
-        />
+        <div className="relative pt-1">
+          <input
+            type="range"
+            min="0"
+            max="100"
+            step="5"
+            value={minStrength * 100}
+            onChange={(e) => handleStrengthChange(parseInt(e.target.value) / 100)}
+            className="
+              w-full h-0.5 rounded-full appearance-none cursor-pointer
+              bg-white/5 border-none
+              accent-blue-500
+              [&::-webkit-slider-thumb]:appearance-none
+              [&::-webkit-slider-thumb]:w-3
+              [&::-webkit-slider-thumb]:h-3
+              [&::-webkit-slider-thumb]:rounded-full
+              [&::-webkit-slider-thumb]:bg-blue-500
+              [&::-webkit-slider-thumb]:cursor-pointer
+              [&::-webkit-slider-thumb]:transition-all
+              [&::-webkit-slider-thumb]:hover:scale-125
+              [&::-moz-range-thumb]:w-3
+              [&::-moz-range-thumb]:h-3
+              [&::-moz-range-thumb]:border-none
+              [&::-moz-range-thumb]:rounded-full
+              [&::-moz-range-thumb]:bg-blue-500
+            "
+          />
+        </div>
 
-        <div className="flex justify-between mt-3 text-[10px] uppercase tracking-tighter font-bold text-slate-600">
-          <span>Weak</span>
-          <span>Strong</span>
+        <div className="flex justify-between mt-4 text-[8px] uppercase tracking-widest font-bold text-slate-700 font-mono">
+          <span>COARSE</span>
+          <span>PRECISE</span>
         </div>
       </div>
 
-      {/* Active Filters Summary */}
-      {(selectedTypes.length < availableTypes.length || minStrength > 0) && (
-        <div className="mt-8 pt-6 border-t border-white/5">
-          <p className="text-[10px] uppercase tracking-widest font-bold text-slate-500 mb-3">Active</p>
-          <div className="flex flex-wrap gap-2">
-            {selectedTypes.length < availableTypes.length && (
-              <span className="text-[10px] font-bold px-2 py-1 bg-white/5 text-slate-300 border border-white/10 rounded-lg">
-                {selectedTypes.length}/{availableTypes.length} TYPES
-              </span>
-            )}
-            {minStrength > 0 && (
-              <span className="text-[10px] font-bold px-2 py-1 bg-white/5 text-slate-300 border border-white/10 rounded-lg">
-                STRENGTH ≥ {(minStrength * 100).toFixed(0)}%
-              </span>
-            )}
-          </div>
+      {/* Connectivity Visualization */}
+      <div className="mt-8 pt-6 border-t border-white/5">
+        <div className="flex gap-1 h-1">
+          {Array.from({ length: 10 }).map((_, i) => (
+            <div
+              key={i}
+              className={`flex-1 rounded-full transition-all duration-500 ${i / 10 < minStrength ? 'bg-blue-500/40' : 'bg-white/5'}`}
+            />
+          ))}
         </div>
-      )}
+      </div>
     </div>
   );
 }
