@@ -25,6 +25,7 @@ export default function GraphCanvas({
 }: GraphCanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [hoveredNode, setHoveredNode] = useState<GraphNode | null>(null);
+  const [hoveredLink, setHoveredLink] = useState<GraphLink | null>(null);
   const [focusedNode, setFocusedNode] = useState<GraphNode | null>(null);
 
   useEffect(() => {
@@ -74,7 +75,25 @@ export default function GraphCanvas({
       .join('path')
       .attr('class', styles.link)
       .attr('stroke-width', (d) => Math.sqrt(d.strength * 8))
-      .attr('stroke-opacity', (d) => 0.2 + d.strength * 0.4);
+      .attr('stroke-opacity', (d) => 0.2 + d.strength * 0.4)
+      .on('mouseenter', function (_event, d) {
+        d3.select(this)
+          .attr('stroke-opacity', 1)
+          .attr('stroke-width', Math.sqrt(d.strength * 8) + 2);
+        setHoveredLink(d);
+        // Position tooltip near cursor
+        const tooltip = d3.select('#graph-tooltip');
+        tooltip.style('opacity', 1);
+      })
+      .on('mousemove', function (_event) {
+        // We handle position in the React render, but we could do it here too
+      })
+      .on('mouseleave', function (_event, d) {
+        d3.select(this)
+          .attr('stroke-width', Math.sqrt(d.strength * 8))
+          .attr('stroke-opacity', 0.2 + d.strength * 0.4);
+        setHoveredLink(null);
+      });
 
     // Create nodes
     const node = g
@@ -225,6 +244,25 @@ export default function GraphCanvas({
           {hoveredNode.description && (
             <p className={styles.tooltipDescription}>{hoveredNode.description}</p>
           )}
+        </div>
+      )}
+
+      {hoveredLink && (
+        <div className={styles.tooltip} style={{ borderColor: 'rgba(99, 102, 241, 0.5)' }}>
+          <div className="flex justify-between items-start mb-2">
+            <h4 className="text-indigo-300">Connection</h4>
+            <span className={styles.tooltipType}>{(hoveredLink.strength * 100).toFixed(0)}%</span>
+          </div>
+          <div className="flex flex-col gap-1 mb-2">
+            <div className="flex items-center gap-2 text-[10px] font-mono text-slate-400">
+              <span className="text-white">{(typeof hoveredLink.source === 'object' ? hoveredLink.source.name : '')}</span>
+              <span className="text-slate-600">→</span>
+              <span className="text-white">{(typeof hoveredLink.target === 'object' ? hoveredLink.target.name : '')}</span>
+            </div>
+          </div>
+          <p className={styles.tooltipDescription}>
+            {hoveredLink.explanation || 'Semantic relationship identified by AI analysis.'}
+          </p>
         </div>
       )}
     </div>

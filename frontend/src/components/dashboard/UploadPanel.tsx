@@ -49,7 +49,7 @@ export default function UploadPanel({ onFileUpload, isProcessing = false }: Uplo
 
   return (
     <div className="glass rounded-2xl p-6 transition-all duration-300 industrial-border">
-      <h2 className="text-xs font-black text-slate-500 mb-6 flex items-center gap-2 uppercase tracking-[0.2em] font-mono">
+      <h2 className="text-xs font-black text-slate-400 mb-6 flex items-center gap-2 uppercase tracking-[0.2em] font-mono">
         <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
         </svg>
@@ -83,7 +83,7 @@ export default function UploadPanel({ onFileUpload, isProcessing = false }: Uplo
           <div className="relative mx-auto h-12 w-12 flex items-center justify-center">
             <div className={`absolute inset-0 rounded-full transition-all duration-500 ${isDragging ? 'bg-blue-500/20 blur-xl scale-125' : 'bg-transparent'}`} />
             <svg
-              className={`relative h-6 w-6 ${isDragging ? 'text-blue-400' : 'text-slate-500'} transition-all duration-300`}
+              className={`relative h-6 w-6 ${isDragging ? 'text-blue-400' : 'text-slate-400'} transition-all duration-300`}
               stroke="currentColor"
               fill="none"
               strokeWidth={2}
@@ -98,15 +98,15 @@ export default function UploadPanel({ onFileUpload, isProcessing = false }: Uplo
               <div className="w-16 h-0.5 bg-white/5 rounded-full mx-auto overflow-hidden">
                 <div className="h-full bg-blue-500 animate-[loading_1.5s_ease-in-out_infinite]" />
               </div>
-              <p className="mt-4 text-[10px] font-bold uppercase tracking-[0.2em] text-blue-500 animate-pulse font-mono">Analyzing...</p>
+              <p className="mt-4 text-[10px] font-bold uppercase tracking-[0.2em] text-blue-500 animate-pulse font-mono">Analyzing Signal...</p>
             </div>
           ) : (
             <div className="space-y-1">
               <p className="text-sm font-bold text-slate-200 font-mono">
-                {isDragging ? 'RELEASE_TO_LOAD' : 'IMPORT_LOCAL_FILE'}
+                {isDragging ? 'Release to Load' : 'Import Document'}
               </p>
-              <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">
-                DRAG & DROP MD / TXT
+              <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">
+                Drag & Drop Markdown or Text
               </p>
             </div>
           )}
@@ -116,12 +116,12 @@ export default function UploadPanel({ onFileUpload, isProcessing = false }: Uplo
       <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between">
         <div className="flex gap-1.5">
           {['TXT', 'MD'].map((ext) => (
-            <span key={ext} className="px-1.5 py-0.5 rounded bg-white/5 border border-white/5 text-[9px] font-bold text-slate-500 font-mono">
+            <span key={ext} className="px-1.5 py-0.5 rounded bg-white/5 border border-white/5 text-[9px] font-bold text-slate-400 font-mono">
               {ext}
             </span>
           ))}
         </div>
-        <span className="text-[9px] font-bold text-slate-700 font-mono uppercase tracking-widest">Protocol v4.0.1</span>
+        <span className="text-[9px] font-bold text-slate-500 font-mono uppercase tracking-widest">Protocol v4.0.1</span>
       </div>
     </div>
   );

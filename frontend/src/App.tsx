@@ -2,11 +2,10 @@
  * Main App Component
  * Atomic Notes Visualizer - AI-powered knowledge graph
  */
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import GraphCanvas from './components/graph/GraphCanvas';
 import UploadPanel from './components/dashboard/UploadPanel';
 import SearchBar from './components/dashboard/SearchBar';
-import FilterControls from './components/dashboard/FilterControls';
 import JobProgressTracker from './components/dashboard/JobProgressTracker';
 import type { GraphData, GraphNode } from './types/graph';
 import { transformAPIToGraphData } from './utils/graph-transformer';
@@ -22,6 +21,15 @@ function formatTimestamp(seconds: number | null | undefined): string {
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
   return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+function titlify(str: string): string {
+  if (!str) return '';
+  return str
+    .replace(/[_.-]+/g, ' ')
+    .toLowerCase()
+    .replace(/\b[a-z]/g, (letter) => letter.toUpperCase())
+    .trim();
 }
 
 function App() {
@@ -255,23 +263,8 @@ function App() {
     setActiveJobs(prev => prev.filter(id => id !== jobId));
   }, []);
 
-  const handleFilterChange = useCallback((filters: { entityTypes: string[]; minStrength: number }) => {
-    if (!graphData || graphData.nodes.length === 0) return;
-    const allTypes = Array.from(new Set(graphData.nodes.map(n => n.type)));
-    if (filters.entityTypes.length === allTypes.length && filters.minStrength === 0) {
-      setFilteredGraphData(null);
-      return;
-    }
-    const nodes = graphData.nodes.filter(node => filters.entityTypes.includes(node.type));
-    const nodeIds = new Set(nodes.map(n => n.id));
-    const links = graphData.links.filter(link => {
-      const s = typeof link.source === 'object' ? link.source.id : link.source;
-      const t = typeof link.target === 'object' ? link.target.id : link.target;
-      return nodeIds.has(s) && nodeIds.has(t) && link.strength >= filters.minStrength;
-    });
-    setFilteredGraphData({ nodes, links });
-    if (selectedNode && !nodeIds.has(selectedNode.id)) setSelectedNode(null);
-  }, [graphData, selectedNode]);
+  // Filter logic removed per user request
+  // const handleFilterChange = useCallback((filters: { entityTypes: string[]; minStrength: number }) => { ... }, []);
 
   const handleNodeClick = useCallback(async (node: GraphNode) => {
     setSelectedNode(node);
@@ -313,10 +306,7 @@ function App() {
     }
   }, []);
 
-  const availableTypes = useMemo(() =>
-    Array.from(new Set(graphData.nodes.map(n => n.type))),
-    [graphData.nodes]
-  );
+  // const availableTypes = useMemo(() => ... );
 
   return (
     <div className="min-h-screen text-slate-400 font-sans selection:bg-blue-500/30">
@@ -343,18 +333,18 @@ function App() {
                 </div>
                 <div>
                   <h1 className="text-xl font-bold tracking-tighter text-white font-mono flex items-center gap-3">
-                    ATOMIC_VISUALIZER
-                    <span className="text-[10px] bg-white/5 border border-white/10 px-1.5 py-0.5 rounded text-slate-500 font-mono tracking-normal">SYS_STABLE</span>
+                    Atomic Visualizer
+                    <span className="text-[10px] bg-white/5 border border-white/10 px-1.5 py-0.5 rounded text-emerald-500 font-mono tracking-normal uppercase">System :: Online</span>
                   </h1>
-                  <p className="text-[9px] text-slate-600 font-bold uppercase tracking-[0.4em] leading-none mt-1.5 font-mono">Neural Knowledge Mapping Engine</p>
+                  <p className="text-[9px] text-slate-600 font-bold uppercase tracking-[0.4em] leading-none mt-1.5 font-mono">Neural Knowledge Mapping</p>
                 </div>
               </div>
             </div>
 
             <div className="flex items-center gap-10">
               <nav className="hidden xl:flex items-center gap-8">
-                {['Topology', 'Analysis', 'Registry', 'Diagnostics'].map((item) => (
-                  <a key={item} href="#" className={`text-[10px] font-black uppercase tracking-[0.2em] transition-all ${item === 'Topology' ? 'text-blue-500' : 'text-slate-600 hover:text-slate-400'}`}>
+                {['Topology'].map((item) => (
+                  <a key={item} href="#" className={`text-[10px] font-black uppercase tracking-[0.2em] transition-all text-blue-500`}>
                     {item}
                   </a>
                 ))}
@@ -366,7 +356,7 @@ function App() {
                 <div className="flex gap-1">
                   {[1, 2, 3].map(i => <div key={i} className={`w-1 h-3 rounded-full ${i <= 2 ? 'bg-blue-500' : 'bg-white/5'}`} />)}
                 </div>
-                <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500 font-mono">CORE_LOAD: 24%</span>
+                <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500 font-mono">System :: Active</span>
               </div>
             </div>
           </div>
@@ -398,8 +388,8 @@ function App() {
 
             <div className="glass rounded-2xl p-6 industrial-border">
               <h2 className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-600 mb-6 flex items-center justify-between font-mono">
-                <span>DATA_VAULT</span>
-                <span className="text-blue-500">{allNotes.length} UNITS</span>
+                <span>Data Vault</span>
+                <span className="text-blue-500">{allNotes.length} Units</span>
               </h2>
               <div className="space-y-1.5 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar font-mono">
                 {allNotes.map((note) => (
@@ -412,8 +402,8 @@ function App() {
                         {String(note.id).padStart(3, '0')}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className={`text-xs font-bold truncate ${note.id === currentNoteId ? 'text-white' : 'text-slate-400'}`}>{note.title.toUpperCase()}</p>
-                        <p className="text-[9px] text-slate-600 font-bold uppercase tracking-tight">{note.entity_count} ENTITIES_DETECTED</p>
+                        <p className={`text-xs font-bold truncate ${note.id === currentNoteId ? 'text-white' : 'text-slate-400'}`}>{titlify(note.title)}</p>
+                        <p className="text-[9px] text-slate-500 font-bold uppercase tracking-tight">{note.entity_count} Entities Detected</p>
                       </div>
                     </div>
 
@@ -440,7 +430,7 @@ function App() {
               </div>
             </div>
 
-            <FilterControls onFilterChange={handleFilterChange} availableTypes={availableTypes} />
+            {/* <FilterControls onFilterChange={handleFilterChange} availableTypes={availableTypes} /> - Removed per user request */}
           </aside>
 
           {/* Main Visualizer Area */}
@@ -454,7 +444,7 @@ function App() {
               {/* Main Graph Bento */}
               <div className="col-span-12 xl:col-span-8 glass rounded-3xl h-[800px] relative group overflow-hidden border border-white/5 shadow-2xl">
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 px-4 py-1.5 border-x border-b border-white/5 bg-white/[0.02] rounded-b-xl z-10">
-                  <span className="text-[9px] font-bold text-slate-600 uppercase tracking-[0.3em] font-mono">WORKSPACE://KNOWLEDGE_GRAPH</span>
+                  <span className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.3em] font-mono">Workspace :: Neural Topology</span>
                 </div>
 
                 {graphData.nodes.length > 0 ? (
@@ -464,8 +454,8 @@ function App() {
                     <div className="w-16 h-16 border-2 border-dashed border-white/10 rounded-full flex items-center justify-center mb-8 animate-spin-slow">
                       <svg className="w-8 h-8 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                     </div>
-                    <h3 className="text-sm font-bold text-white uppercase tracking-[0.2em] font-mono">Awaiting_Input</h3>
-                    <p className="text-[10px] text-slate-600 mt-2 max-w-[200px] text-center font-mono uppercase leading-relaxed">System initialized. Upload data to begin mapping neural connections.</p>
+                    <h3 className="text-sm font-bold text-white uppercase tracking-[0.2em] font-mono">Awaiting Signal</h3>
+                    <p className="text-[10px] text-slate-500 mt-2 max-w-[200px] text-center font-mono uppercase leading-relaxed">System initialized. Upload data to begin mapping connections.</p>
                   </div>
                 )}
 
@@ -473,13 +463,13 @@ function App() {
                 <div className="absolute bottom-8 left-8 flex gap-3">
                   <div className="bg-black/60 backdrop-blur-xl border border-white/10 rounded p-4 flex items-center gap-8 font-mono">
                     <div className="flex flex-col">
-                      <span className="text-[8px] font-black uppercase tracking-widest text-slate-600 mb-1">NODES_ARRAY</span>
-                      <span className="text-lg font-bold text-white leading-none">{(filteredGraphData || graphData).nodes.length}</span>
+                      <span className="text-[8px] font-black uppercase tracking-widest text-slate-500 mb-1">Nodes</span>
+                      <span className="text-lg font-bold text-white leading-none">{filteredGraphData ? filteredGraphData.nodes.length : graphData.nodes.length}</span>
                     </div>
                     <div className="w-px h-8 bg-white/5" />
                     <div className="flex flex-col">
-                      <span className="text-[8px] font-black uppercase tracking-widest text-slate-600 mb-1">EDGE_CONNECTIONS</span>
-                      <span className="text-lg font-bold text-white leading-none">{(filteredGraphData || graphData).links.length}</span>
+                      <span className="text-[8px] font-black uppercase tracking-widest text-slate-500 mb-1">Edges</span>
+                      <span className="text-lg font-bold text-white leading-none">{filteredGraphData ? filteredGraphData.links.length : graphData.links.length}</span>
                     </div>
                   </div>
                 </div>
@@ -490,19 +480,19 @@ function App() {
                 {selectedNode ? (
                   <div className="glass rounded-3xl p-10 h-full flex flex-col border-white/5 industrial-border animate-slideIn">
                     <div className="flex items-start justify-between mb-10">
-                      <div className="text-[10px] font-mono text-blue-500 font-bold tracking-widest">CONCEPT_ID: {String(selectedNode.id).padStart(4, '0')}</div>
+                      <div className="text-[10px] font-mono text-blue-500 font-bold tracking-widest">UNIT ID :: {String(selectedNode.id).padStart(4, '0')}</div>
                       <button onClick={() => setSelectedNode(null)} className="p-1 hover:text-white transition-colors text-slate-700">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                       </button>
                     </div>
 
-                    <h3 className="text-2xl font-bold text-white mb-3 font-mono leading-tight tracking-tighter uppercase">{selectedNode.name}</h3>
+                    <h3 className="text-2xl font-bold text-white mb-3 font-mono leading-tight tracking-tighter uppercase">{titlify(selectedNode.name)}</h3>
                     <div className="inline-flex items-center px-2 py-0.5 rounded border border-blue-500/20 bg-blue-500/5 text-[9px] font-bold uppercase tracking-widest text-blue-400 mb-10 font-mono w-fit">
-                      TYPE_{selectedNode.type}
+                      {titlify(selectedNode.type)}
                     </div>
 
                     <div className="flex-1 overflow-y-auto custom-scrollbar pr-4 mb-10">
-                      <p className="text-slate-500 text-xs leading-relaxed font-medium font-mono uppercase">
+                      <p className="text-slate-400 text-xs leading-relaxed font-medium font-mono uppercase">
                         {selectedNode.description || 'No descriptive data mapped for this unit.'}
                       </p>
                     </div>
@@ -525,17 +515,17 @@ function App() {
                             <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.245 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z" />
                           </svg>
                           <div className="flex-1">
-                            <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-slate-600">MEDIA_SOURCE</p>
-                            <p className="text-xs text-white font-mono">T_{formatTimestamp(selectedNode.timestamp)}</p>
+                            <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-slate-500">Video Source</p>
+                            <p className="text-xs text-white font-mono">Timestamp :: {formatTimestamp(selectedNode.timestamp)}</p>
                           </div>
                         </a>
                       );
                     })()}
 
                     <div className="pt-10 border-t border-white/5 space-y-8">
-                      <h4 className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-700 flex items-center gap-3 font-mono">
+                      <h4 className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3 font-mono">
                         <div className="w-1.5 h-1.5 bg-blue-500 rounded-full" />
-                        USER_ANNOTATIONS
+                        Annotations
                       </h4>
 
                       <div className="flex gap-2">
@@ -544,8 +534,8 @@ function App() {
                           value={newAnnotation}
                           onChange={(e) => setNewAnnotation(e.target.value)}
                           onKeyDown={(e) => e.key === 'Enter' && handleAddAnnotation()}
-                          placeholder="INPUT_THOUGHT..."
-                          className="flex-1 bg-white/[0.02] border border-white/5 rounded px-4 py-2.5 text-[10px] text-white placeholder-slate-800 font-mono focus:outline-none focus:border-blue-500/30 transition-colors uppercase"
+                          placeholder="Assign a note to this unit..."
+                          className="flex-1 bg-white/[0.02] border border-white/5 rounded px-4 py-2.5 text-[10px] text-white placeholder-slate-500 font-mono focus:outline-none focus:border-blue-500/30 transition-colors"
                         />
                         <button
                           onClick={handleAddAnnotation}
@@ -560,8 +550,8 @@ function App() {
                         {annotations.map((ann) => (
                           <div key={ann.id} className="group border-l-2 border-white/5 pl-4 hover:border-blue-500/30 transition-all">
                             <div className="flex justify-between items-start gap-4">
-                              <p className="text-[10px] text-slate-600 leading-relaxed font-mono uppercase">{ann.user_note}</p>
-                              <button onClick={() => handleDeleteAnnotation(ann.id)} className="opacity-0 group-hover:opacity-100 text-slate-800 hover:text-red-500 transition-all">
+                              <p className="text-[10px] text-slate-400 leading-relaxed font-mono uppercase">{ann.user_note}</p>
+                              <button onClick={() => handleDeleteAnnotation(ann.id)} className="opacity-0 group-hover:opacity-100 text-slate-600 hover:text-red-500 transition-all">
                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                               </button>
                             </div>
@@ -575,8 +565,8 @@ function App() {
                     <div className="w-16 h-16 rounded-full border border-white/5 flex items-center justify-center mb-6 opacity-20">
                       <svg className="w-6 h-6 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5" /></svg>
                     </div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-slate-700 font-mono">SELECT_UNIT</p>
-                    <p className="text-[9px] text-slate-800 mt-4 max-w-[160px] font-mono leading-relaxed uppercase tracking-tight">ENGAGE_NODE_TO_ACCESS_NEURAL_DATA</p>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-slate-500 font-mono">Select a concept</p>
+                    <p className="text-[9px] text-slate-600 mt-4 max-w-[160px] font-mono leading-relaxed uppercase tracking-tight">Click on a node to access mapped data and insights.</p>
                   </div>
                 )}
               </div>

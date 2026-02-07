@@ -2,7 +2,6 @@
  * ProcessingStatusWidget Component
  * Sticky widget showing AI processing progress
  */
-import React from 'react';
 
 export interface ProcessingStatus {
   stage: 'extracting' | 'embedding' | 'relationships' | 'saving' | 'complete';
@@ -47,8 +46,8 @@ export default function ProcessingStatusWidget({
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <h4 className="text-[10px] font-black text-slate-400 font-mono tracking-[0.2em] mb-1">
-            {isComplete ? 'SIGNAL_STABLE' : 'UNIT_PROCESSING'}
+          <h4 className="text-[10px] font-black text-slate-400 font-mono tracking-[0.2em] mb-1 uppercase">
+            {isComplete ? 'Signal :: Stable' : 'Unit :: Processing'}
           </h4>
           <p className="text-xs font-bold text-white truncate mb-4 font-mono uppercase">
             {noteTitle}
@@ -69,10 +68,10 @@ export default function ProcessingStatusWidget({
 
           {/* Status Message HUD */}
           <div className="flex items-center justify-between">
-            <p className="text-[9px] uppercase font-bold tracking-widest text-slate-600 font-mono">
-              {status.message.toUpperCase()}
+            <p className="text-[9px] uppercase font-bold tracking-widest text-slate-400 font-mono">
+              {status.message.replace(/_/g, ' ').toUpperCase()}
             </p>
-            <span className="text-[9px] font-black text-slate-700 font-mono">
+            <span className="text-[9px] font-black text-slate-500 font-mono">
               {status.progress.toFixed(0)}%
             </span>
           </div>
