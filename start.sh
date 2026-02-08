@@ -22,6 +22,9 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 BACKEND_DIR="$SCRIPT_DIR/backend"
 FRONTEND_DIR="$SCRIPT_DIR/frontend"
 
+# Create logs directory
+mkdir -p "$SCRIPT_DIR/logs"
+
 # Check if Docker is running
 echo -e "${YELLOW}[1/5]${NC} Checking Docker..."
 if ! docker info > /dev/null 2>&1; then
@@ -64,19 +67,19 @@ fi
 pkill -f "uvicorn app.main:app" 2>/dev/null || true
 pkill -f "celery -A app.tasks.youtube_processor worker" 2>/dev/null || true
 
-# Start backend in background
+# Start backend in background with file logging
 source venv/bin/activate
-nohup uvicorn app.main:app --reload --port 8002 > /tmp/atomic-notes-backend.log 2>&1 &
+nohup uvicorn app.main:app --reload --port 8002 --log-level debug > "$SCRIPT_DIR/logs/backend.log" 2>&1 &
 BACKEND_PID=$!
 
 # Start Celery worker in background
-nohup celery -A app.tasks.youtube_processor worker --loglevel=info > /tmp/atomic-notes-celery.log 2>&1 &
+nohup celery -A app.tasks.youtube_processor worker --loglevel=info > "$SCRIPT_DIR/logs/celery.log" 2>&1 &
 CELERY_PID=$!
 
 echo -e "${GREEN}✓ Backend started (PID: $BACKEND_PID)${NC}"
 echo -e "${GREEN}✓ Celery worker started (PID: $CELERY_PID)${NC}"
 echo -e "  ${BLUE}→ API running at http://localhost:8002${NC}"
-echo -e "  ${BLUE}→ Logs: /tmp/atomic-notes-backend.log${NC}"
+echo -e "  ${BLUE}→ Logs: $SCRIPT_DIR/logs/backend.log${NC}"
 
 # Wait for backend to be ready
 echo -e "${YELLOW}[4/5]${NC} Waiting for backend to be ready..."
@@ -86,7 +89,8 @@ for i in {1..10}; do
         break
     fi
     if [ $i -eq 10 ]; then
-        echo -e "${RED}✗ Backend failed to start. Check logs at /tmp/atomic-notes-backend.log${NC}"
+        echo -e "${RED}✗ Backend failed to start${NC}"
+        echo -e "${YELLOW}  Check logs with: tail -f $SCRIPT_DIR/logs/backend.log${NC}"
         exit 1
     fi
     sleep 1
@@ -107,7 +111,7 @@ fi
 pkill -f "vite" 2>/dev/null || true
 
 # Start frontend in background
-nohup npm run dev > /tmp/atomic-notes-frontend.log 2>&1 &
+nohup npm run dev > "$SCRIPT_DIR/logs/frontend.log" 2>&1 &
 FRONTEND_PID=$!
 echo -e "${GREEN}✓ Frontend started (PID: $FRONTEND_PID)${NC}"
 
@@ -116,13 +120,13 @@ echo "  Waiting for frontend to start..."
 sleep 3
 
 # Try to detect the port from logs
-FRONTEND_PORT=$(grep -oP 'Local:\s+http://localhost:\K\d+' /tmp/atomic-notes-frontend.log | head -1)
+FRONTEND_PORT=$(grep -oP 'Local:\s+http://localhost:\K\d+' "$SCRIPT_DIR/logs/frontend.log" | head -1)
 if [ -z "$FRONTEND_PORT" ]; then
-    FRONTEND_PORT="5173 or 5174"
+    FRONTEND_PORT="5173"
 fi
 
 echo -e "  ${BLUE}→ Frontend running at http://localhost:$FRONTEND_PORT${NC}"
-echo -e "  ${BLUE}→ Logs: /tmp/atomic-notes-frontend.log${NC}"
+echo -e "  ${BLUE}→ Logs: $SCRIPT_DIR/logs/frontend.log${NC}"
 
 echo ""
 echo -e "${GREEN}╔════════════════════════════════════════════════╗${NC}"
@@ -140,11 +144,20 @@ echo -e "  • Backend:   $BACKEND_PID"
 echo -e "  • Frontend:  $FRONTEND_PID"
 echo ""
 echo -e "${BLUE}Logs:${NC}"
-echo -e "  • Backend:   tail -f /tmp/atomic-notes-backend.log"
-echo -e "  • Frontend:  tail -f /tmp/atomic-notes-frontend.log"
+echo -e "  • Backend:   ${YELLOW}tail -f logs/backend.log${NC}"
+echo -e "  • Frontend:  ${YELLOW}tail -f logs/frontend.log${NC}"
+echo -e "  • Celery:    ${YELLOW}tail -f logs/celery.log${NC}"
+echo ""
+echo -e "${YELLOW}View all logs:${NC}"
+echo -e "  ${GREEN}./logs.sh${NC} or ${GREEN}tail -f logs/*.log${NC}"
 echo ""
 echo -e "${YELLOW}To stop all services, run:${NC}"
 echo -e "  ./stop.sh"
 echo ""
 echo -e "${BLUE}Open your browser to http://localhost:$FRONTEND_PORT to use the app!${NC}"
 echo ""
+
+# Save PIDs to file for stop.sh
+echo "$BACKEND_PID" > "$SCRIPT_DIR/.backend.pid"
+echo "$FRONTEND_PID" > "$SCRIPT_DIR/.frontend.pid"
+echo "$CELERY_PID" > "$SCRIPT_DIR/.celery.pid"
