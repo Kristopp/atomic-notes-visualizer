@@ -112,7 +112,7 @@ class NoteService:
             if not note:
                 return None
             
-            note_title = str(note.title) if note.title else f"Note {note_id}"
+            note_title = str(note.title) if note.title is not None else f"Note {note_id}"
             
             # Get all entity IDs for this note
             entity_result = await self.db.execute(
