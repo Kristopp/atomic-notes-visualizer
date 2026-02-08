@@ -2,7 +2,8 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from celery.result import AsyncResult
-from typing import Annotated
+from celery.result import AsyncResult
+from typing import Annotated, Optional
 import logging
 
 from app.database import get_db
@@ -19,6 +20,7 @@ DatabaseDep = Annotated[AsyncSession, Depends(get_db)]
 
 class YouTubeRequest(BaseModel):
     url: str
+    topic_id: Optional[int] = None
 
 
 @router.post("/process")
@@ -37,7 +39,8 @@ async def start_youtube_processing(
         new_note = Note(
             title=f"YouTube Video: {request.url}",
             content="Processing in progress...",
-            note_metadata={"source": "youtube", "url": request.url}
+            note_metadata={"source": "youtube", "url": request.url},
+            topic_id=request.topic_id
         )
         db.add(new_note)
         await db.commit()

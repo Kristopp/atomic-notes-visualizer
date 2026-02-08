@@ -5,7 +5,7 @@ Handles all business logic for notes with optimized database queries
 from typing import List, Optional, Tuple
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete, func
+from sqlalchemy import select, delete, func, or_
 from sqlalchemy.orm import selectinload
 import logging
 
@@ -107,37 +107,47 @@ class NoteService:
         Delete a note and all associated entities/relationships
         Returns (note_id, title) if successful, None if not found
         """
-        note = await self.get_note_by_id(note_id)
-        if not note:
-            return None
-        
-        note_title = note.title
-        
-        # Get all entity IDs for this note
-        entity_result = await self.db.execute(
-            select(Entity.id).where(Entity.note_id == note_id)
-        )
-        entity_ids = [row[0] for row in entity_result.all()]
-        
-        # Delete relationships in batch
-        if entity_ids:
-            await self.db.execute(
-                delete(Relationship).where(
-                    Relationship.source_entity_id.in_(entity_ids) |
-                    Relationship.target_entity_id.in_(entity_ids)
-                )
-            )
+        try:
+            note = await self.get_note_by_id(note_id)
+            if not note:
+                return None
             
-            # Delete entities in batch
-            await self.db.execute(
-                delete(Entity).where(Entity.note_id == note_id)
+            note_title = str(note.title) if note.title else f"Note {note_id}"
+            
+            # Get all entity IDs for this note
+            entity_result = await self.db.execute(
+                select(Entity.id).where(Entity.note_id == note_id)
             )
-        
-        # Delete note
-        await self.db.delete(note)
-        await self.db.commit()
-        
-        return note_id, note_title
+            entity_ids = [row[0] for row in entity_result.all()]
+            
+            # Delete relationships first (they reference entities)
+            if entity_ids:
+                # Use or_() for proper SQL OR condition
+                await self.db.execute(
+                    delete(Relationship).where(
+                        or_(
+                            Relationship.source_entity_id.in_(entity_ids),
+                            Relationship.target_entity_id.in_(entity_ids)
+                        )
+                    )
+                )
+                
+                # Delete entities
+                await self.db.execute(
+                    delete(Entity).where(Entity.note_id == note_id)
+                )
+            
+            # Finally delete the note
+            await self.db.delete(note)
+            await self.db.commit()
+            
+            logger.info(f"Note deleted: {note_id} - {note_title}")
+            return note_id, note_title
+            
+        except Exception as e:
+            await self.db.rollback()
+            logger.error(f"Error deleting note {note_id}: {e}", exc_info=True)
+            raise
     
     async def get_note_graph(self, note_id: int) -> Optional[GraphDataResponse]:
         """
@@ -199,12 +209,13 @@ class NoteService:
             relationships=graph_edges
         )
     
-    async def upload_file(self, filename: str, content: str) -> NoteUploadResponse:
+    async def upload_file(self, filename: str, content: str, topic_id: Optional[int] = None) -> NoteUploadResponse:
         """Upload and create a note from file content"""
         note = Note(
             title=filename,
             content=content,
-            source_file=filename
+            source_file=filename,
+            topic_id=topic_id
         )
         self.db.add(note)
         await self.db.commit()

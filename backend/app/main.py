@@ -40,7 +40,7 @@ async def lifespan(app: FastAPI):
 
 
 # Import routers
-from app.api import notes, search, annotations, youtube
+from app.api import notes, search, annotations, youtube, topics
 
 app = FastAPI(
     title=settings.app_name,
@@ -108,6 +108,7 @@ app.include_router(notes.router)
 app.include_router(search.router)
 app.include_router(annotations.router)
 app.include_router(youtube.router)
+app.include_router(topics.router)
 
 
 @app.get("/")

@@ -58,6 +58,7 @@ class NoteResponse(BaseSchema):
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     source_file: Optional[str] = None
+    topic_id: Optional[int] = None
     note_metadata: Optional[NoteMetadata] = None
 
 
@@ -66,6 +67,7 @@ class NoteListItem(BaseSchema):
     id: int
     title: Optional[str] = None
     created_at: Optional[datetime] = None
+    topic_id: Optional[int] = None
     entity_count: int = 0
     note_metadata: Optional[Dict[str, Any]] = None
 

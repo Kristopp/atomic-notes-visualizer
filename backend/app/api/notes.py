@@ -1,7 +1,7 @@
 """
 Notes API Router - Refactored with Service Layer and Pydantic Schemas
 """
-from typing import Annotated
+from typing import Annotated, Optional
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 
@@ -25,6 +25,7 @@ router = APIRouter(prefix="/api/notes", tags=["notes"])
 )
 async def upload_note(
     file: Annotated[UploadFile, File(description="Text file (.txt or .md) containing atomic notes")],
+    topic_id: Optional[int] = None,
     service: NoteService = Depends(get_note_service)
 ):
     """
@@ -43,7 +44,7 @@ async def upload_note(
     text = content.decode('utf-8')
     
     # Use service layer to create note
-    return await service.upload_file(file.filename, text)
+    return await service.upload_file(file.filename, text, topic_id)
 
 
 @router.post(

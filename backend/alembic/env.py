@@ -17,6 +17,7 @@ from app.models.note import Note
 from app.models.entity import Entity
 from app.models.relationship import Relationship
 from app.models.annotation import Annotation
+from app.models.topic import Topic
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

@@ -1,9 +1,10 @@
 """
 Note model - stores atomic notes and their embeddings
 """
-from sqlalchemy import Column, Integer, String, Text, DateTime, JSON
+from sqlalchemy import Column, Integer, String, Text, DateTime, JSON, ForeignKey
 from sqlalchemy.sql import func
 from pgvector.sqlalchemy import Vector
+from sqlalchemy.orm import relationship
 from app.database import Base
 
 
@@ -18,6 +19,10 @@ class Note(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     source_file = Column(String(255), nullable=True)
     note_metadata = Column(JSON, nullable=True)  # Renamed from 'metadata' to avoid SQLAlchemy conflict
+    topic_id = Column(Integer, ForeignKey("topics.id"), nullable=True)
     
+    # Relationships
+    topic = relationship("Topic", back_populates="notes")
+
     def __repr__(self):
         return f"<Note(id={self.id}, title='{self.title}')>"
