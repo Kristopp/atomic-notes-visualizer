@@ -135,67 +135,68 @@
     height: 8px;
     border-top: 2px solid #3b82f6;
     border-left: 2px solid #3b82f6;
-    border-radius: 2px 0 0 0;
-  }
-
-  h4 {
-    margin: 0 0 8px 0;
-    font-size: 14px;
-    font-family: 'Fira Code', monospace;
-    font-weight: 700;
-    color: #f8fafc;
-    letter-spacing: -0.02em;
-    text-transform: uppercase;
-  }
-}
-
-.tooltipType {
-  display: inline-block;
-  margin: 0 0 16px 0;
-  padding: 2px 8px;
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  border-radius: 4px;
-  font-family: 'Fira Code', monospace;
-  font-size: 9px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: #60a5fa;
-}
-
-.tooltipDescription {
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.6;
-  color: #94a3b8;
-  font-weight: 400;
-}
-
-// Animations
-@keyframes aura {
-
-  0%,
-  100% {
-    opacity: 1;
-    filter: drop-shadow(0 0 10px currentColor);
-  }
-
-  50% {
-    opacity: 0.7;
-    filter: drop-shadow(0 0 20px currentColor);
-  }
-}
-
-@keyframes fadeIn {
-  from {
+    background: rgba(255, 255, 255, 0.9);
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-family: 'Inter', sans-serif;
+    color: #4b5563;
+    box-shadow:
+      0 10px 15px -3px rgba(0, 0, 0, 0.1),
+      0 4px 6px -2px rgba(0, 0, 0, 0.05),
+      0 0 0 1px rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    z-index: 50;
+    transform: translate(-50%, -100%);
+    margin-top: -16px;
     opacity: 0;
-    transform: translateX(20px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+
+    &.visible {
+      opacity: 1;
+      transform: translate(-50%, -120%);
+    }
+
+    strong {
+      display: block;
+      color: #111827;
+      font-weight: 600;
+      margin-bottom: 4px;
+      font-size: 14px;
+    }
   }
 
-  to {
-    opacity: 1;
-    transform: translateX(0);
+  /* Node Styling */
+  .nodeCircle {
+    fill: #ffffff;
+    stroke: rgba(0, 0, 0, 0.1);
+    stroke-width: 1px;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    cursor: pointer;
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.05));
+
+    &:hover {
+      fill: #fafafa;
+      stroke: rgba(0, 0, 0, 0.3);
+      stroke-width: 2px;
+      filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.1));
+    }
+  }
+
+  /* Link Styling */
+  .link {
+    stroke: #e5e7eb;
+    /* gray-200 */
+    stroke-opacity: 0.6;
+    stroke-width: 1px;
+    transition: stroke 0.3s ease, stroke-opacity 0.3s ease;
+
+    &:hover {
+      stroke: #9ca3af;
+      /* gray-400 */
+      stroke-opacity: 1 !important;
+    }
   }
 }
 

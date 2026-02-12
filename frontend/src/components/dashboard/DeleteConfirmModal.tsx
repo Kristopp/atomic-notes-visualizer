@@ -7,6 +7,7 @@ interface DeleteConfirmModalProps {
   isOpen: boolean;
   noteTitle: string;
   entityCount: number;
+  isDeleting?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -15,6 +16,7 @@ export default function DeleteConfirmModal({
   isOpen,
   noteTitle,
   entityCount,
+  isDeleting = false,
   onConfirm,
   onCancel,
 }: DeleteConfirmModalProps) {
@@ -24,68 +26,64 @@ export default function DeleteConfirmModal({
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-md z-[100] animate-fadeIn"
+        className="fixed inset-0 bg-white/40 backdrop-blur-md z-[100] animate-fade-in"
         onClick={onCancel}
       />
 
       {/* Modal Container */}
       <div className="fixed inset-0 flex items-center justify-center z-[101] p-4 pointer-events-none">
-        <div className="glass rounded-3xl shadow-2xl max-w-md w-full p-10 border border-white/5 industrial-border animate-slideIn pointer-events-auto overflow-hidden relative">
-          {/* Warning Glow */}
-          <div className="absolute top-0 left-0 w-full h-1 bg-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.5)]" />
+        <div className="spatial-glass rounded-hyper shadow-spatial-lift max-w-md w-full p-10 animate-fade-in pointer-events-auto overflow-hidden relative">
 
           <div className="flex items-center gap-4 mb-8">
-            <div className="w-10 h-10 rounded bg-red-500/10 border border-red-500/20 flex items-center justify-center">
-              <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center">
+              <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white font-mono uppercase tracking-tighter">
-                Purge Unit?
+              <h3 className="text-xl font-bold text-text-primary tracking-tight">
+                Archive Research?
               </h3>
-              <p className="text-[9px] text-red-500/70 font-bold uppercase tracking-[0.2em] font-mono">Destructive Action Required</p>
+              <p className="text-[10px] text-red-500/70 font-bold uppercase tracking-[0.1em]">Destructive Action</p>
             </div>
           </div>
 
-          <p className="text-slate-400 mb-8 font-medium font-mono text-xs leading-relaxed uppercase">
-            Are you sure you want to permanently remove <span className="text-white">"{noteTitle}"</span> from the data vault?
+          <p className="text-text-secondary mb-8 font-medium text-sm leading-relaxed">
+            Are you sure you want to permanently remove <span className="text-text-primary font-bold">"{noteTitle}"</span> from your research vault?
           </p>
 
           {entityCount > 0 && (
-            <div className="bg-white/[0.02] border border-white/5 rounded-xl p-6 mb-8 font-mono">
-              <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mb-4">
-                Associated Dependencies:
+            <div className="bg-black/[0.02] rounded-2xl p-6 mb-8 border border-black/[0.01]">
+              <p className="text-[10px] text-text-secondary font-bold uppercase tracking-widest mb-4 opacity-40">
+                Dependencies to be cleared:
               </p>
-              <ul className="text-[10px] text-slate-300 space-y-3 font-bold uppercase tracking-tight">
+              <ul className="text-xs text-text-primary/70 space-y-3 font-semibold">
                 <li className="flex items-center gap-3">
-                  <div className="w-1 h-1 rounded-full bg-red-500" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-red-400" />
                   Source Registry Entry
                 </li>
                 <li className="flex items-center gap-3">
-                  <div className="w-1 h-1 rounded-full bg-red-500" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-red-400" />
                   {entityCount} Extracted Concept Nodes
-                </li>
-                <li className="flex items-center gap-3">
-                  <div className="w-1 h-1 rounded-full bg-red-500" />
-                  All Mapped Neural Edges
                 </li>
               </ul>
             </div>
           )}
 
-          <div className="flex gap-4 justify-end pt-4 border-t border-white/5">
+          <div className="flex gap-4 justify-end">
             <button
               onClick={onCancel}
-              className="px-6 py-2.5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 hover:text-white transition-all font-mono"
+              className="px-6 py-3 text-sm font-bold text-text-secondary hover:text-text-primary transition-all"
             >
-              Abort
+              Cancel
             </button>
             <button
               onClick={onConfirm}
-              className="px-8 py-2.5 text-[10px] font-black uppercase tracking-[0.2em] text-white bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded transition-all shadow-[0_0_20px_rgba(239,68,68,0.1)] font-mono hover:border-red-500/50"
+              disabled={isDeleting}
+              className={`px-8 py-3 text-sm font-bold text-white bg-red-500 rounded-2xl shadow-lg shadow-red-200 transition-all 
+                ${isDeleting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-red-600 active:scale-95'}`}
             >
-              Confirm Purge
+              {isDeleting ? 'Archiving...' : 'Delete Note'}
             </button>
           </div>
         </div>
